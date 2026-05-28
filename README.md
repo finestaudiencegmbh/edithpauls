@@ -1,0 +1,161 @@
+# Fuat & Marta · MoneyMaker-Workshop — Lead- & VIP-Ticket-Dashboard
+
+Eine lokale Web-App, die das Google-Tracking-Sheet **live ausliest** und auswertet:
+wie viele Leads jede **Kampagne**, **Anzeigengruppe**, jedes **Creative** und
+**Placement** gebracht hat – inklusive **Lead-Qualität**, abgeleitet aus den
+Antworten beim VIP-Ticket. Sortier- und filterbar, mit CSV-Export. Kein
+manuelles Übertragen ins Sheet mehr nötig.
+
+> Die App läuft **nur lokal** auf deinem Rechner. Personenbezogene Daten (Namen,
+> E-Mails, Telefonnummern) verlassen deinen Rechner nicht und werden nirgendwo
+> veröffentlicht.
+
+---
+
+## Was die App kann
+
+- **KPIs auf einen Blick:** zugeordneter Adspend, Leads, CPL, VIP-Tickets,
+  Ticket-Rate, Kosten/Ticket, Ø Lead-Qualität, qualifizierte Tickets,
+  Qualitäts-Verteilung.
+- **Breakdown nach Kampagne / Anzeigengruppe / Creative / Placement** – jeweils
+  als sortierbare Tabelle. Zeile anklicken = sofort danach filtern.
+- **Lead-Qualität (0–100):** berechnet aus Einkommen, investiertem Kapital,
+  Immobilienbesitz und Beschäftigung (alles anpassbar, siehe unten). Einteilung
+  in Tiers A–D.
+- **Filter:** Quelle (bezahlt/organisch), Kampagne, Anzeigengruppe, Creative,
+  Placement, Einkommen, Immobilien, Beschäftigung, Zeitraum, Qualitäts-Tier,
+  Volltextsuche.
+- **Lead-Detailtabelle** mit allen VIP-Antworten (aufklappbar) und **CSV-Export**.
+- **Demo-Modus:** ohne jede Einrichtung sofort mit Beispieldaten ansehbar.
+
+---
+
+## Schnellstart (Demo-Modus)
+
+```bash
+npm install
+npm run serve
+```
+
+Dann **http://localhost:3000** öffnen. Es werden synthetische Beispieldaten
+angezeigt (oben rechts „DEMO-Daten"). So siehst du das Dashboard sofort, bevor
+du die Google-Anbindung einrichtest.
+
+---
+
+## Echte Daten anbinden (Google Sheets)
+
+Damit die App live aus dem Sheet liest, brauchst du einen **Service-Account**
+(einmalige Einrichtung, ~10 Minuten):
+
+### 1. Google-Cloud-Projekt & Service-Account anlegen
+1. Auf <https://console.cloud.google.com> ein Projekt anlegen (oder vorhandenes nutzen).
+2. Unter **APIs & Dienste → Bibliothek** die **Google Sheets API** aktivieren.
+3. Unter **APIs & Dienste → Anmeldedaten → Anmeldedaten erstellen →
+   Dienstkonto** ein Service-Account anlegen.
+4. Beim Service-Account → **Schlüssel → Schlüssel hinzufügen → JSON** einen
+   Schlüssel erzeugen und herunterladen.
+5. Die heruntergeladene Datei ins Projekt legen, z. B. als
+   `service-account.json` (diese Datei ist bereits in `.gitignore` und wird
+   **nie** committet).
+
+### 2. Sheet für den Service-Account freigeben
+In der JSON-Datei steht eine `client_email` (Form `...@...gserviceaccount.com`).
+Diese E-Mail im Google Sheet über **Teilen** als **Betrachter** hinzufügen.
+
+### 3. `.env` anlegen
+```bash
+cp .env.example .env
+```
+und ausfüllen:
+```env
+SPREADSHEET_ID=1rxK4s-qh1Enbw5L_Ni37xikPEpFe82-5w_7GT-PX6ng
+GOOGLE_APPLICATION_CREDENTIALS=./service-account.json
+```
+
+### 4. Starten
+```bash
+npm run serve
+```
+Oben rechts sollte jetzt **„Stand: …"** mit dem echten Ladezeitpunkt stehen
+(kein „DEMO"-Badge mehr). Über **↻ Aktualisieren** holst du frische Daten.
+
+---
+
+## Wie das Sheet gelesen wird
+
+Die App erkennt die Tabellen **automatisch an ihren Kopfzeilen** – Tab-Namen
+oder Reihenfolge dürfen sich ändern:
+
+| Tabelle | erkannt an | liefert |
+| --- | --- | --- |
+| Anzeigengruppen-Übersicht | `Anzeigengruppe` + `Adspend` | Adspend, Klicks, CPC … je Anzeigengruppe |
+| Leads | `Gewonnen am` + `utm_source` | Lead + Attribution (UTM) |
+| VIP-Tickets | `Monatliches Einkommen` / `Teilgenommen am` | Qualifizierungs-Antworten |
+
+**Attribution über UTM:**
+`utm_campaign` = Kampagne · `utm_source` = Anzeigengruppe ·
+`utm_medium` = Creative · `utm_term` = Placement.
+
+Leads und VIP-Tickets werden über die **E-Mail** zusammengeführt (Funnelcockpit-
+und Typeform-Mail werden beide berücksichtigt, falls sich Tippfehler
+unterscheiden). Adspend wird je **Anzeigengruppe** zugeordnet; auf Creative-/
+Placement-Ebene liefert ihn die Facebook-Anbindung (Phase 2).
+
+---
+
+## Lead-Qualität anpassen
+
+Das Bewertungsmodell steht in [`config/scoring.json`](config/scoring.json) –
+**kein Code nötig**. Du kannst Gewichte, Einkommens-Skalierung und die
+Tier-Grenzen (A–D) frei ändern. Nach dem Speichern im Dashboard **↻ Aktualisieren**.
+
+Standardgewichtung: Einkommen 40 %, investiertes Kapital 25 %,
+Immobilienbesitz 20 %, Beschäftigung 15 %. Fehlende Antworten werden fair
+herausgerechnet (das Ergebnis wird auf die vorhandenen Dimensionen normiert).
+
+---
+
+## Entwicklung
+
+```bash
+npm run dev    # Vite (Port 5173) + API (Port 3000) mit Hot-Reload
+npm test       # Parser-/Dataset-Tests gegen die echte Sheet-Struktur
+```
+Im Dev-Modus **http://localhost:5173** öffnen (Anfragen an `/api` werden
+automatisch an den Server weitergeleitet).
+
+### Optionaler Passwortschutz
+Für `DASHBOARD_USER` / `DASHBOARD_PASSWORD` in der `.env` setzen → Basic-Auth.
+
+---
+
+## Phase 2 — Facebook direkt anbinden
+
+Vorbereitet in [`server/facebook.js`](server/facebook.js). Geplant: Spend,
+Impressionen und **Placement-Daten** direkt aus der Facebook Marketing API
+ziehen (`breakdowns=publisher_platform,platform_position`) und über die
+Anzeigengruppen-/UTM-Namen mit den Leads zusammenführen. Dann entfällt das
+manuelle Pflegen des Adspends im Sheet komplett und Kosten lassen sich bis auf
+Creative- und Placement-Ebene auswerten.
+
+Dafür nötig: ein Facebook-App-Zugriffstoken mit `ads_read` und die
+Ad-Account-ID (`act_…`) – Felder sind in `.env.example` schon vorbereitet.
+
+---
+
+## Projektstruktur
+
+```
+config/scoring.json     Bewertungsmodell für die Lead-Qualität (anpassbar)
+server/                 Node-Backend
+  sheets.js             Google-Sheets-Anbindung (Service-Account)
+  parser.js             erkennt & parst die Tabellen
+  build.js              Join Leads ↔ Tickets ↔ Adspend, Quelle, Qualität
+  scoring.js            Berechnung der Lead-Qualität
+  facebook.js           Phase-2-Andockpunkt
+  sample-data.js        synthetische Demo-Daten
+  index.js              Express-Server (API + Auslieferung)
+  parser.test.mjs       Tests
+web/                    React-Frontend (Vite)
+```

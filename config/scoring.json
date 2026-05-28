@@ -1,0 +1,63 @@
+{
+  "_comment": "Bewertungsmodell für die Lead-Qualität. Alle Werte sind bewusst einfach gehalten und können angepasst werden. Geändert wird hier – nicht im Code. Nach dem Speichern im Dashboard auf 'Aktualisieren' klicken.",
+
+  "weights": {
+    "income": 0.4,
+    "invested": 0.25,
+    "realEstate": 0.2,
+    "employment": 0.15
+  },
+
+  "income": {
+    "_comment": "Monatliches Einkommen. Der Mittelwert der angegebenen Spanne wird durch 'fullScoreAt' geteilt (max. 1.0). 5000 €/Monat = volle Punktzahl.",
+    "fullScoreAt": 5000
+  },
+
+  "invested": {
+    "_comment": "Bereits in den Vermögensaufbau investiertes Kapital. Freitext wird nach Stichworten/Beträgen bewertet (0..1).",
+    "none": 0.05,
+    "monthly": 0.6,
+    "yesGeneric": 0.5,
+    "fullScoreAt": 10000
+  },
+
+  "realEstate": {
+    "_comment": "Immobilienbesitz. Schlüssel werden case-insensitiv als Teilstring geprüft (von oben nach unten).",
+    "rules": [
+      { "match": "mehrere", "score": 1.0 },
+      { "match": "zwei", "score": 1.0 },
+      { "match": "ja", "score": 0.7 },
+      { "match": "noch nicht", "score": 0.3 },
+      { "match": "nein", "score": 0.0 }
+    ]
+  },
+
+  "employment": {
+    "_comment": "Beschäftigungsstatus. Für ein Vermögensaufbau-Angebot zählt verfügbares/planbares Einkommen.",
+    "scores": {
+      "unternehmer": 1.0,
+      "selbststaendig": 0.9,
+      "selbstständig": 0.9,
+      "selbständig": 0.9,
+      "angestellt": 0.75,
+      "beamtin": 0.75,
+      "beamter": 0.75,
+      "in elternzeit": 0.5,
+      "elternzeit": 0.5,
+      "student": 0.4,
+      "studentin": 0.4,
+      "rentner": 0.4,
+      "rentnerin": 0.4,
+      "arbeitssuchend": 0.2,
+      "arbeitslos": 0.2
+    },
+    "default": 0.5
+  },
+
+  "tiers": [
+    { "key": "A", "label": "A · Top", "min": 75, "color": "#16a34a" },
+    { "key": "B", "label": "B · Gut", "min": 55, "color": "#65a30d" },
+    { "key": "C", "label": "C · Mittel", "min": 35, "color": "#d97706" },
+    { "key": "D", "label": "D · Schwach", "min": 0, "color": "#dc2626" }
+  ]
+}

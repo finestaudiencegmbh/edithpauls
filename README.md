@@ -6,9 +6,10 @@ wie viele Leads jede **Kampagne**, **Anzeigengruppe**, jedes **Creative** und
 Antworten beim VIP-Ticket. Sortier- und filterbar, mit CSV-Export. Kein
 manuelles Übertragen ins Sheet mehr nötig.
 
-> Die App läuft **nur lokal** auf deinem Rechner. Personenbezogene Daten (Namen,
-> E-Mails, Telefonnummern) verlassen deinen Rechner nicht und werden nirgendwo
-> veröffentlicht.
+> Die App kann **gehostet** (teilbare URL mit Passwort) oder **lokal** laufen.
+> Weil personenbezogene Daten (Namen, E-Mails, Telefonnummern) enthalten sind,
+> ist die gehostete Variante **immer durch ein Login geschützt** – niemals offen
+> im Netz.
 
 ---
 
@@ -30,7 +31,34 @@ manuelles Übertragen ins Sheet mehr nötig.
 
 ---
 
-## Schnellstart (Demo-Modus)
+## Gehostet teilen — empfohlen (kein lokales Setup)
+
+Damit du eine **teilbare URL mit Passwort** bekommst, ohne lokal etwas zu
+installieren. Wir nutzen **Render** (kostenloser Tarif).
+
+1. Account auf <https://render.com> anlegen und **GitHub verbinden**.
+2. **New + → Blueprint** → dieses Repository (`mmv-fuatmarta`) auswählen.
+   Render liest die mitgelieferte `render.yaml` automatisch.
+3. Beim Anlegen die abgefragten Werte (Secrets) ausfüllen:
+   - `DASHBOARD_USER` und `DASHBOARD_PASSWORD` → frei wählbar. Das ist das Login,
+     das du beim Teilen weitergibst.
+   - `GOOGLE_SERVICE_ACCOUNT_JSON` → den kompletten Inhalt der Service-Account-
+     JSON-Datei (siehe unten) als **eine Zeile** einfügen. *(Leer lassen = es
+     startet erstmal im Demo-Modus.)*
+4. **Apply / Create** → Render baut und startet. Nach 1–2 Minuten bekommst du
+   eine URL wie `https://mmv-fuatmarta-dashboard.onrender.com`.
+5. URL + Login an dein Team weitergeben. Fertig.
+
+> Hinweis: Im kostenlosen Render-Tarif „schläft" der Dienst nach ~15 Minuten
+> ohne Zugriff ein und braucht beim nächsten Aufruf ~30 Sek. zum Aufwachen.
+> Für „immer sofort da" gibt es einen günstigen Always-on-Tarif (ab ~7 $/Monat).
+
+Andere Hoster (Railway, Fly.io, eigener Server) funktionieren genauso – die App
+ist ein normaler Node-Server (`npm install && npm run build && npm start`).
+
+---
+
+## Lokal starten (Alternative, Demo-Modus)
 
 ```bash
 npm install

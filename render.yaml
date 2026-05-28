@@ -1,0 +1,37 @@
+# Render.com Blueprint – Ein-Klick-Deployment des Dashboards.
+# Anleitung in der README ("Gehostet teilen"). Secrets (Service-Account,
+# Login) werden NICHT hier gespeichert, sondern beim Deploy abgefragt.
+
+services:
+  - type: web
+    name: mmv-fuatmarta-dashboard
+    runtime: node
+    plan: free
+    # devDependencies (vite) werden für den Build gebraucht -> explizit mitinstallieren
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
+      - key: SPREADSHEET_ID
+        value: 1rxK4s-qh1Enbw5L_Ni37xikPEpFe82-5w_7GT-PX6ng
+      - key: CACHE_TTL_SECONDS
+        value: "120"
+      # --- Login (teilbare URL + Passwort) – beim Deploy ausfüllen ---
+      - key: DASHBOARD_USER
+        sync: false
+      - key: DASHBOARD_PASSWORD
+        sync: false
+      # --- Google-Service-Account als kompletter JSON-Key (eine Zeile) ---
+      # Leer lassen = Demo-Modus. Sobald gesetzt -> echte Sheet-Daten live.
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      # --- Facebook (Phase 2) – später ausfüllen ---
+      - key: FB_ACCESS_TOKEN
+        sync: false
+      - key: FB_AD_ACCOUNT_ID
+        sync: false

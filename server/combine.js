@@ -1,0 +1,168 @@
+/**
+ * Führt die Facebook-Kennzahlen (pro Ad) mit der Lead-/Ticket-Attribution aus
+ * dem Sheet (über die UTM-Namen) zu einer verschachtelten Hierarchie zusammen:
+ *
+ *   Kampagne → Anzeigengruppe → Creative (Ad)
+ *
+ * Jede Ebene enthält:
+ *   - aus Facebook:  Spend, Impressionen, CPM, individuell ausgehende Klicks,
+ *                    individuell ausgehende CTR, individueller ausg. Klickpreis
+ *   - aus dem Sheet: Leads, Tickets (via UTM-Attribution)
+ *   - kombiniert:    CPL, Kosten/Ticket, LP-Conversion (= Leads ÷ individuell
+ *                    ausgehende Klicks)
+ *
+ * Zusätzlich werden zwei Tagesreihen gebaut:
+ *   - spend  (aus Facebook)
+ *   - leads/tickets (aus dem Sheet, nach Lead-Datum)
+ */
+
+const normKey = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+function emptyMetrics() {
+  return { spend: 0, impressions: 0, clicks: 0, uoc: 0, leads: 0, tickets: 0 };
+}
+
+/** Leitet die abgeleiteten Kennzahlen aus den Rohsummen ab. */
+function derive(m) {
+  const cpm = m.impressions ? m.spend / (m.impressions / 1000) : null;
+  const outboundCtr = m.impressions ? m.uoc / m.impressions : null; // individuell ausgehende CTR
+  const cpoc = m.uoc ? m.spend / m.uoc : null; // individueller ausgehender Klickpreis
+  const cpl = m.leads ? m.spend / m.leads : null;
+  const cpt = m.tickets ? m.spend / m.tickets : null;
+  const lpConversion = m.uoc ? m.leads / m.uoc : null; // Leads ÷ individuell ausgehende Klicks
+  return {
+    spend: round2(m.spend),
+    impressions: m.impressions,
+    outboundClicks: m.uoc,
+    cpm: round2(cpm),
+    outboundCtr,
+    cpoc: round2(cpoc),
+    leads: m.leads,
+    tickets: m.tickets,
+    cpl: round2(cpl),
+    cpt: round2(cpt),
+    lpConversion,
+  };
+}
+
+const round2 = (n) => (n == null ? null : Math.round(n * 100) / 100);
+
+/**
+ * @param {object} meta   Ergebnis aus fetchMetaAll() (entities, daily, status)
+ * @param {array}  leads  Lead-Records aus buildDataset (mit campaign/adset/creative, wonAt, hasTicket)
+ */
+export function combineMetaWithLeads(meta, leads) {
+  const { entities = [], daily = [], campaignStatus = {}, adsetStatus = {} } = meta || {};
+
+  // Lead-/Ticket-Zähler je Dimension (über normalisierte UTM-Namen)
+  const leadBy = { campaign: new Map(), adset: new Map(), creative: new Map() };
+  for (const l of leads || []) {
+    if (l.sourceType !== 'paid') continue;
+    for (const dim of ['campaign', 'adset', 'creative']) {
+      const k = normKey(l[dim]);
+      if (!k) continue;
+      if (!leadBy[dim].has(k)) leadBy[dim].set(k, { leads: 0, tickets: 0 });
+      const e = leadBy[dim].get(k);
+      e.leads += 1;
+      if (l.hasTicket) e.tickets += 1;
+    }
+  }
+  const lookupLeads = (dim, name) => leadBy[dim].get(normKey(name)) || { leads: 0, tickets: 0 };
+
+  // Hierarchie aufbauen: Kampagne -> Anzeigengruppe -> Ad
+  const campaigns = new Map();
+  for (const e of entities) {
+    const cKey = normKey(e.campaign);
+    if (!campaigns.has(cKey)) {
+      campaigns.set(cKey, {
+        id: e.campaignId,
+        name: e.campaign,
+        level: 'campaign',
+        active: campaignStatus[e.campaign]?.active ?? null,
+        status: campaignStatus[e.campaign]?.status ?? null,
+        _m: emptyMetrics(),
+        adsets: new Map(),
+      });
+    }
+    const c = campaigns.get(cKey);
+    const aKey = normKey(e.adset);
+    if (!c.adsets.has(aKey)) {
+      c.adsets.set(aKey, {
+        id: e.adsetId,
+        name: e.adset,
+        level: 'adset',
+        active: adsetStatus[e.adset]?.active ?? null,
+        status: adsetStatus[e.adset]?.status ?? null,
+        _m: emptyMetrics(),
+        ads: [],
+      });
+    }
+    const a = c.adsets.get(aKey);
+
+    // Ad-Ebene: FB-Kennzahlen direkt, Leads/Tickets über Creative-Namen
+    const adLeads = lookupLeads('creative', e.creative);
+    const adM = {
+      spend: e.spend,
+      impressions: e.impressions,
+      clicks: e.clicks,
+      uoc: e.uniqueOutboundClicks,
+      leads: adLeads.leads,
+      tickets: adLeads.tickets,
+    };
+    a.ads.push({ id: e.adId, name: e.creative, level: 'ad', ...derive(adM) });
+
+    // FB-Summen nach oben aggregieren
+    for (const node of [a._m, c._m]) {
+      node.spend += e.spend;
+      node.impressions += e.impressions;
+      node.clicks += e.clicks;
+      node.uoc += e.uniqueOutboundClicks;
+    }
+  }
+
+  // Leads/Tickets je Ebene aus der Sheet-Attribution (nicht aus Ad-Summe,
+  // damit auch Leads ohne exakten Creative-Match auf Anzeigengruppen-/
+  // Kampagnenebene korrekt erscheinen)
+  const result = [];
+  for (const c of campaigns.values()) {
+    const cl = lookupLeads('campaign', c.name);
+    c._m.leads = cl.leads;
+    c._m.tickets = cl.tickets;
+    const adsets = [];
+    for (const a of c.adsets.values()) {
+      const al = lookupLeads('adset', a.name);
+      a._m.leads = al.leads;
+      a._m.tickets = al.tickets;
+      adsets.push({
+        id: a.id, name: a.name, level: 'adset', active: a.active, status: a.status,
+        ...derive(a._m),
+        ads: a.ads.sort((x, y) => y.spend - x.spend),
+      });
+    }
+    result.push({
+      id: c.id, name: c.name, level: 'campaign', active: c.active, status: c.status,
+      ...derive(c._m),
+      adsets: adsets.sort((x, y) => y.spend - x.spend),
+    });
+  }
+  result.sort((x, y) => y.spend - x.spend);
+
+  // Tagesreihen
+  const spendByDay = daily.map((d) => ({ date: d.date, spend: round2(d.spend), impressions: d.impressions, clicks: d.clicks }));
+
+  const leadDay = new Map();
+  for (const l of leads || []) {
+    const day = (l.wonAt || '').slice(0, 10);
+    if (!day) continue;
+    if (!leadDay.has(day)) leadDay.set(day, { date: day, leads: 0, tickets: 0 });
+    const e = leadDay.get(day);
+    e.leads += 1;
+    if (l.hasTicket) e.tickets += 1;
+  }
+  const leadsByDay = [...leadDay.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  return {
+    hierarchy: result,
+    daily: { spend: spendByDay, leads: leadsByDay },
+  };
+}

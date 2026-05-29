@@ -10,7 +10,8 @@ import { buildDataset } from './build.js';
 import { loadScoringConfig } from './scoring.js';
 import { getSampleParsed } from './sample-data.js';
 import { isSupermetricsConfigured, fetchFbInsights, aggregateFb } from './supermetrics.js';
-import { isMetaConfigured, fetchMetaInsights } from './meta.js';
+import { isMetaConfigured, fetchMetaAll } from './meta.js';
+import { combineMetaWithLeads } from './combine.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -64,14 +65,24 @@ async function loadDataset({ refresh = false } = {}) {
   // nicht blockieren.
   const metaOn = isMetaConfigured();
   const smOn = isSupermetricsConfigured();
-  let fb = { configured: metaOn || smOn, provider: metaOn ? 'meta' : smOn ? 'supermetrics' : null, error: null, totals: null, byDim: null, rows: 0 };
-  if (metaOn || smOn) {
+  let fb = { configured: metaOn || smOn, provider: metaOn ? 'meta' : smOn ? 'supermetrics' : null, error: null, totals: null, byDim: null, rows: 0, hierarchy: null, daily: null };
+  if (metaOn) {
     try {
-      const records = metaOn ? await fetchMetaInsights() : await fetchFbInsights();
-      const agg = aggregateFb(records);
-      fb = { configured: true, provider: metaOn ? 'meta' : 'supermetrics', error: null, fetchedAt: new Date().toISOString(), ...agg };
+      const all = await fetchMetaAll();
+      const agg = aggregateFb(all.records);
+      const combined = combineMetaWithLeads(all, dataset.leads);
+      fb = { configured: true, provider: 'meta', error: null, fetchedAt: new Date().toISOString(), ...agg, hierarchy: combined.hierarchy, daily: combined.daily };
     } catch (err) {
-      console.error(`${metaOn ? 'Meta' : 'Supermetrics'}-Fehler:`, err.message);
+      console.error('Meta-Fehler:', err.message);
+      fb.error = err.message;
+    }
+  } else if (smOn) {
+    try {
+      const records = await fetchFbInsights();
+      const agg = aggregateFb(records);
+      fb = { configured: true, provider: 'supermetrics', error: null, fetchedAt: new Date().toISOString(), ...agg };
+    } catch (err) {
+      console.error('Supermetrics-Fehler:', err.message);
       fb.error = err.message;
     }
   }

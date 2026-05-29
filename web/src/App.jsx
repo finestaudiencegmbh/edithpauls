@@ -5,6 +5,9 @@ import Kpis from './components/Kpis.jsx';
 import Filters from './components/Filters.jsx';
 import BreakdownTable from './components/BreakdownTable.jsx';
 import LeadsTable from './components/LeadsTable.jsx';
+import TimeChart from './components/TimeChart.jsx';
+import AdHierarchy from './components/AdHierarchy.jsx';
+import { fmtEur, fmtInt } from './lib.js';
 
 const EMPTY_FILTERS = {
   search: '', sourceType: 'paid', campaign: '', adset: '', creative: '', placement: '',
@@ -89,6 +92,44 @@ export default function App() {
         <>
           <Filters leads={data.leads} filters={filters} setFilters={setFilters} tiers={tiers} onReset={() => setFilters(EMPTY_FILTERS)} />
           <Kpis kpis={kpis} dist={dist} tiers={tiers} />
+
+          {(hasFb && fb.daily) && (
+            <section className="panel">
+              <div className="panel-head">
+                <div>
+                  <h2>Verlauf</h2>
+                  <span className="panel-sub">Ad-Spend (Facebook) &amp; Leads/Tickets (Sheet) pro Tag · Maus zum Anzeigen</span>
+                </div>
+              </div>
+              <div className="charts-grid">
+                <TimeChart
+                  title="Ad-Spend pro Tag"
+                  formatY={(v) => fmtEur(Math.round(v))}
+                  series={[{ key: 'spend', label: 'Ad-Spend', color: '#d0bb5a', data: (fb.daily.spend || []).map((d) => ({ date: d.date, value: d.spend })) }]}
+                />
+                <TimeChart
+                  title="Leads &amp; Tickets pro Tag"
+                  formatY={(v) => fmtInt(Math.round(v))}
+                  series={[
+                    { key: 'leads', label: 'Leads', color: '#5ec8d8', data: (fb.daily.leads || []).map((d) => ({ date: d.date, value: d.leads })) },
+                    { key: 'tickets', label: 'VIP-Tickets', color: '#6fcf97', data: (fb.daily.leads || []).map((d) => ({ date: d.date, value: d.tickets })) },
+                  ]}
+                />
+              </div>
+            </section>
+          )}
+
+          {(hasFb && fb.hierarchy) && (
+            <section className="panel">
+              <div className="panel-head">
+                <div>
+                  <h2>Kampagnen-Aufschlüsselung</h2>
+                  <span className="panel-sub">Kampagne → Anzeigengruppe → Creative · Facebook-Kennzahlen + Lead-Attribution aus dem Sheet</span>
+                </div>
+              </div>
+              <AdHierarchy hierarchy={fb.hierarchy} />
+            </section>
+          )}
 
           <section className="panel">
             <div className="panel-head">

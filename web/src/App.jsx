@@ -45,7 +45,14 @@ export default function App() {
 
   const selectDim = (key) => setFilters((f) => ({ ...f, [tab]: f[tab] === key ? '' : key }));
 
-  if (loading && !data) return <div className="loader">Lade Daten…</div>;
+  if (loading && !data) return (
+    <div className="loader">
+      <div className="loader-inner">
+        <div className="loader-ring" />
+        <span>Lade Daten…</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="app">

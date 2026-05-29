@@ -107,7 +107,18 @@ body::after {
 .app  { max-width: 1360px; margin: 0 auto; padding: 0 28px 96px; }
 .loader {
   display: grid; place-items: center; height: 100vh;
-  color: var(--muted); font-size: 17px; letter-spacing: -0.01em;
+}
+.loader-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 22px;
+  color: var(--muted); font-size: 16px; letter-spacing: 0.01em;
+}
+.loader-ring {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 2px solid rgba(208,187,90,0.15);
+  border-top-color: var(--gold);
+  box-shadow: 0 0 24px var(--gold-glow);
+  animation: spin 1s linear infinite;
 }
 
 /* ================================================================

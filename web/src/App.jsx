@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchData } from './api.js';
-import { applyFilters, aggregate, computeKpis, tierDistribution, DIMENSIONS, fmtDate } from './lib.js';
+import { applyFilters, aggregate, computeKpis, tierDistribution, leadsByDay, DIMENSIONS, fmtDate } from './lib.js';
 import Kpis from './components/Kpis.jsx';
 import Filters from './components/Filters.jsx';
 import BreakdownTable from './components/BreakdownTable.jsx';
@@ -50,6 +50,7 @@ export default function App() {
   const filtered = useMemo(() => (data ? applyFilters(data.leads, filters) : []), [data, filters]);
   const kpis = useMemo(() => (data ? computeKpis(filtered, data.overviewByAdset, fb) : null), [data, filtered, fb]);
   const dist = useMemo(() => (data ? tierDistribution(filtered, tiers) : {}), [data, filtered, tiers]);
+  const leadDaily = useMemo(() => (data ? leadsByDay(filtered) : []), [data, filtered]);
 
   const rows = useMemo(
     () => (data ? aggregate(filtered, tab, data.overviewByAdset, fb) : []),
@@ -101,33 +102,29 @@ export default function App() {
       {data && (
         <>
           <Filters leads={data.leads} filters={filters} setFilters={setFilters} tiers={tiers} onReset={() => setFilters({ ...EMPTY_FILTERS, from: range.from, to: range.to })} />
-          <Kpis kpis={kpis} dist={dist} tiers={tiers} />
-
-          {(hasFb && fb.daily) && (
-            <section className="panel">
-              <div className="panel-head">
-                <div>
-                  <h2>Verlauf</h2>
-                  <span className="panel-sub">Ad-Spend (Facebook) &amp; Leads/Tickets (Sheet) pro Tag · Maus zum Anzeigen</span>
-                </div>
+          <section className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>Verlauf</h2>
+                <span className="panel-sub">Ad-Spend (Facebook) &amp; Leads/Tickets (Sheet) pro Tag · Maus zum Anzeigen</span>
               </div>
-              <div className="charts-grid">
-                <TimeChart
-                  title="Ad-Spend pro Tag"
-                  formatY={(v) => fmtEur(Math.round(v))}
-                  series={[{ key: 'spend', label: 'Ad-Spend', color: '#d0bb5a', data: (fb.daily.spend || []).map((d) => ({ date: d.date, value: d.spend })) }]}
-                />
-                <TimeChart
-                  title="Leads &amp; Tickets pro Tag"
-                  formatY={(v) => fmtInt(Math.round(v))}
-                  series={[
-                    { key: 'leads', label: 'Leads', color: '#5ec8d8', data: (fb.daily.leads || []).map((d) => ({ date: d.date, value: d.leads })) },
-                    { key: 'tickets', label: 'VIP-Tickets', color: '#6fcf97', data: (fb.daily.leads || []).map((d) => ({ date: d.date, value: d.tickets })) },
-                  ]}
-                />
-              </div>
-            </section>
-          )}
+            </div>
+            <div className="charts-grid">
+              <TimeChart
+                title="Ad-Spend pro Tag"
+                formatY={(v) => fmtEur(Math.round(v))}
+                series={[{ key: 'spend', label: 'Ad-Spend', color: '#d0bb5a', data: (hasFb && fb.daily ? fb.daily.spend : []).map((d) => ({ date: d.date, value: d.spend })) }]}
+              />
+              <TimeChart
+                title="Leads &amp; Tickets pro Tag"
+                formatY={(v) => fmtInt(Math.round(v))}
+                series={[
+                  { key: 'leads', label: 'Leads', color: '#5ec8d8', data: leadDaily.map((d) => ({ date: d.date, value: d.leads })) },
+                  { key: 'tickets', label: 'VIP-Tickets', color: '#6fcf97', data: leadDaily.map((d) => ({ date: d.date, value: d.tickets })) },
+                ]}
+              />
+            </div>
+          </section>
 
           {(hasFb && fb.hierarchy) && (
             <section className="panel">

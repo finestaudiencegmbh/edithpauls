@@ -137,7 +137,15 @@ export function aggregate(leads, dimKey, overviewByAdset, fb) {
 export function computeKpis(leads, overviewByAdset, fb) {
   const total = leads.length;
   const paid = leads.filter((l) => l.sourceType === 'paid');
+  const organic = leads.filter((l) => l.sourceType !== 'paid');
+
+  // Tickets getrennt nach Quelle
+  const paidTickets = paid.filter((l) => l.hasTicket);
+  const organicTickets = organic.filter((l) => l.hasTicket);
   const ticketLeads = leads.filter((l) => l.hasTicket);
+
+  // Qualität: über alle bewerteten Tickets (Antworten kommen aus dem Sheet,
+  // unabhängig von der Quelle)
   const scored = ticketLeads.filter((l) => l.quality);
   const qualified = ticketLeads.filter((l) => ['A', 'B'].includes(l.quality?.tier)).length;
 
@@ -147,15 +155,19 @@ export function computeKpis(leads, overviewByAdset, fb) {
     const adsets = new Set(paid.map((l) => l.adset));
     spend = spendForAdsets([...adsets], overviewByAdset);
   }
-  // CPL & Kosten/Ticket nur auf Lead-Kampagnen-Spend beziehen (Traffic-/
-  // Reichweiten-Kampagnen verfälschen sonst die Kosten). Fällt auf den
-  // Gesamt-Spend zurück, falls keine Aufteilung vorliegt.
+  // CPL & Kosten/Ticket nur auf Lead-Kampagnen-Spend (ohne Traffic) UND nur
+  // auf BEZAHLTE Leads/Tickets beziehen – Spend gibt es nur für Paid, daher
+  // dürfen organische Leads den CPL nicht verwässern.
   const leadSpend = fb?.totals?.leadSpend ?? spend;
   const nonLeadSpend = fb?.totals?.nonLeadSpend ?? 0;
   return {
     total,
     paid: paid.length,
-    organic: total - paid.length,
+    organic: organic.length,
+    paidTickets: paidTickets.length,
+    organicTickets: organicTickets.length,
+    paidTicketRate: paid.length ? paidTickets.length / paid.length : null,
+    organicTicketRate: organic.length ? organicTickets.length / organic.length : null,
     tickets: ticketLeads.length,
     ticketRate: total ? ticketLeads.length / total : null,
     avgQuality: scored.length ? Math.round(scored.reduce((s, l) => s + l.quality.score, 0) / scored.length) : null,
@@ -165,9 +177,24 @@ export function computeKpis(leads, overviewByAdset, fb) {
     leadSpend,
     nonLeadSpend,
     impressions,
-    cpl: leadSpend != null && total ? leadSpend / total : null,
-    cpt: leadSpend != null && ticketLeads.length ? leadSpend / ticketLeads.length : null,
+    // Denominator = bezahlte Leads/Tickets (nicht alle), da Spend nur Paid ist
+    cpl: leadSpend != null && paid.length ? leadSpend / paid.length : null,
+    cpt: leadSpend != null && paidTickets.length ? leadSpend / paidTickets.length : null,
   };
+}
+
+/** Tägliche Leads/Tickets aus (gefilterten) Leads – für den Verlaufs-Graphen. */
+export function leadsByDay(leads) {
+  const m = new Map();
+  for (const l of leads) {
+    const day = (l.wonAt || '').slice(0, 10);
+    if (!day) continue;
+    if (!m.has(day)) m.set(day, { date: day, leads: 0, tickets: 0 });
+    const e = m.get(day);
+    e.leads += 1;
+    if (l.hasTicket) e.tickets += 1;
+  }
+  return [...m.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
 export function tierDistribution(leads, tiers) {

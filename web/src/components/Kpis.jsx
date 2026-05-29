@@ -12,38 +12,64 @@ function Card({ label, value, sub, accent }) {
   );
 }
 
+const GOLD = '#d0bb5a';
+const CYAN = '#5ec8d8';
+const GREEN = '#6fcf97';
+
 export default function Kpis({ kpis, dist, tiers }) {
   return (
-    <div className="kpi-grid">
-      <Card label="Adspend (gesamt)" value={fmtEur(kpis.spend)} sub={kpis.nonLeadSpend > 0 ? `davon ${fmtEur(kpis.nonLeadSpend)} Traffic` : `${fmtInt(kpis.paid)} bezahlte Leads`} accent="#d0bb5a" />
-      {kpis.impressions != null && <Card label="Impressionen" value={fmtInt(kpis.impressions)} sub="aus Facebook" accent="#5ec8d8" />}
-      <Card label="Leads gesamt" value={fmtInt(kpis.total)} sub={`${fmtInt(kpis.organic)} organisch`} />
-      <Card label="CPL" value={fmtEur(kpis.cpl)} sub={kpis.nonLeadSpend > 0 ? 'nur Lead-Kampagnen' : 'Kosten pro Lead'} />
-      <Card label="VIP-Tickets" value={fmtInt(kpis.tickets)} sub={`Rate ${fmtPct(kpis.ticketRate)}`} accent="#5ec8d8" />
-      <Card label="Kosten / Ticket" value={fmtEur(kpis.cpt)} />
-      <Card label="Ø Lead-Qualität" value={fmtScore(kpis.avgQuality)} sub="von 100" accent="#6fcf97" />
-      <Card label="Qualifizierte Tickets" value={fmtInt(kpis.qualified)} sub={`Tier A/B · ${fmtPct(kpis.qualifiedRate)}`} accent="#d0bb5a" />
-      <div className="kpi-card kpi-dist">
-        <div className="kpi-label">Qualitäts-Verteilung (Tickets)</div>
-        <div className="dist-bars">
-          {tiers.map((t) => (
-            <div key={t.key} className="dist-row">
-              <span className="dist-key" style={{ color: t.color }}>{t.key}</span>
-              <div className="dist-track">
-                <div className="dist-fill" style={{ width: `${kpis.tickets ? (dist[t.key] / kpis.tickets) * 100 : 0}%`, background: t.color }} />
-              </div>
-              <span className="dist-count">{dist[t.key] || 0}</span>
-            </div>
-          ))}
-          {dist.none > 0 && (
-            <div className="dist-row">
-              <span className="dist-key muted">–</span>
-              <div className="dist-track"><div className="dist-fill" style={{ width: `${kpis.tickets ? (dist.none / kpis.tickets) * 100 : 0}%`, background: '#94a3b8' }} /></div>
-              <span className="dist-count">{dist.none}</span>
-            </div>
-          )}
+    <div className="kpi-sections">
+      {/* Bezahlt (Facebook Ads) */}
+      <section className="kpi-section">
+        <div className="kpi-section-head"><span className="kpi-dot" style={{ background: GOLD }} />Bezahlt · Facebook Ads</div>
+        <div className="kpi-grid">
+          <Card label="Adspend" value={fmtEur(kpis.spend)} sub={kpis.nonLeadSpend > 0 ? `davon ${fmtEur(kpis.nonLeadSpend)} Traffic` : 'gesamt'} accent={GOLD} />
+          <Card label="Bezahlte Leads" value={fmtInt(kpis.paid)} sub="über Ads" accent={GOLD} />
+          <Card label="CPL" value={fmtEur(kpis.cpl)} sub={kpis.nonLeadSpend > 0 ? 'nur Lead-Kampagnen' : 'pro bezahltem Lead'} accent={GOLD} />
+          <Card label="VIP-Tickets (Paid)" value={fmtInt(kpis.paidTickets)} sub={`Rate ${fmtPct(kpis.paidTicketRate)}`} accent={GOLD} />
+          <Card label="Kosten / Ticket" value={fmtEur(kpis.cpt)} sub="pro bezahltem Ticket" accent={GOLD} />
         </div>
-      </div>
+      </section>
+
+      {/* Organisch */}
+      <section className="kpi-section">
+        <div className="kpi-section-head"><span className="kpi-dot" style={{ background: CYAN }} />Organisch</div>
+        <div className="kpi-grid">
+          <Card label="Organische Leads" value={fmtInt(kpis.organic)} sub="ohne Ad-Kosten" accent={CYAN} />
+          <Card label="VIP-Tickets (Organisch)" value={fmtInt(kpis.organicTickets)} sub={`Rate ${fmtPct(kpis.organicTicketRate)}`} accent={CYAN} />
+          <Card label="Leads gesamt" value={fmtInt(kpis.total)} sub={`${fmtInt(kpis.paid)} bezahlt · ${fmtInt(kpis.organic)} organisch`} accent={CYAN} />
+        </div>
+      </section>
+
+      {/* Lead-Qualität (quellenübergreifend) */}
+      <section className="kpi-section">
+        <div className="kpi-section-head"><span className="kpi-dot" style={{ background: GREEN }} />Lead-Qualität</div>
+        <div className="kpi-grid">
+          <Card label="Ø Lead-Qualität" value={fmtScore(kpis.avgQuality)} sub="von 100" accent={GREEN} />
+          <Card label="Qualifizierte Tickets" value={fmtInt(kpis.qualified)} sub={`Tier A/B · ${fmtPct(kpis.qualifiedRate)}`} accent={GREEN} />
+          <div className="kpi-card kpi-dist">
+            <div className="kpi-label">Qualitäts-Verteilung (Tickets)</div>
+            <div className="dist-bars">
+              {tiers.map((t) => (
+                <div key={t.key} className="dist-row">
+                  <span className="dist-key" style={{ color: t.color }}>{t.key}</span>
+                  <div className="dist-track">
+                    <div className="dist-fill" style={{ width: `${kpis.tickets ? (dist[t.key] / kpis.tickets) * 100 : 0}%`, background: t.color }} />
+                  </div>
+                  <span className="dist-count">{dist[t.key] || 0}</span>
+                </div>
+              ))}
+              {dist.none > 0 && (
+                <div className="dist-row">
+                  <span className="dist-key muted">–</span>
+                  <div className="dist-track"><div className="dist-fill" style={{ width: `${kpis.tickets ? (dist.none / kpis.tickets) * 100 : 0}%`, background: '#94a3b8' }} /></div>
+                  <span className="dist-count">{dist.none}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

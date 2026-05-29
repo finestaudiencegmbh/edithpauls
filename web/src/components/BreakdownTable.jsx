@@ -1,8 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { fmtEur, fmtInt, fmtPct, fmtScore } from '../lib.js';
 
-export default function BreakdownTable({ rows, dimLabel, spendAttributable, onSelect, tiers }) {
+export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
   const [sort, setSort] = useState({ col: 'leads', dir: 'desc' });
+
+  const hasSpend = rows.some((r) => r.spend != null);
+  const hasImpressions = rows.some((r) => r.impressions != null);
 
   const cols = useMemo(() => {
     const base = [
@@ -14,7 +17,14 @@ export default function BreakdownTable({ rows, dimLabel, spendAttributable, onSe
       { key: 'qualified', label: 'Quali A/B', fmt: fmtInt },
       { key: 'qualifiedRate', label: 'Quali-Rate', fmt: fmtPct },
     ];
-    if (spendAttributable) {
+    if (hasImpressions) {
+      base.push(
+        { key: 'impressions', label: 'Impr.', fmt: fmtInt },
+        { key: 'cpm', label: 'CPM', fmt: fmtEur },
+        { key: 'ctr', label: 'CTR', fmt: fmtPct }
+      );
+    }
+    if (hasSpend) {
       base.push(
         { key: 'spend', label: 'Adspend', fmt: fmtEur },
         { key: 'cpl', label: 'CPL', fmt: fmtEur },
@@ -22,7 +32,7 @@ export default function BreakdownTable({ rows, dimLabel, spendAttributable, onSe
       );
     }
     return base;
-  }, [dimLabel, spendAttributable]);
+  }, [dimLabel, hasSpend, hasImpressions]);
 
   const sorted = useMemo(() => {
     const arr = [...rows];

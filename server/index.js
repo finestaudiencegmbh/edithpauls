@@ -9,6 +9,7 @@ import { parseSheets } from './parser.js';
 import { buildDataset } from './build.js';
 import { loadScoringConfig } from './scoring.js';
 import { getSampleParsed } from './sample-data.js';
+import { isSupermetricsConfigured, fetchFbInsights, aggregateFb } from './supermetrics.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -56,10 +57,26 @@ async function loadDataset({ refresh = false } = {}) {
     source = 'demo';
   }
   const dataset = buildDataset(parsed, cfg);
+
+  // Facebook-Ads-Daten via Supermetrics (optional, Phase 2). Fehler hier
+  // dürfen das Sheet-Dashboard nicht blockieren.
+  let fb = { configured: isSupermetricsConfigured(), error: null, totals: null, byDim: null, rows: 0 };
+  if (isSupermetricsConfigured()) {
+    try {
+      const records = await fetchFbInsights();
+      const agg = aggregateFb(records);
+      fb = { configured: true, error: null, fetchedAt: new Date().toISOString(), ...agg };
+    } catch (err) {
+      console.error('Supermetrics-Fehler:', err.message);
+      fb.error = err.message;
+    }
+  }
+
   const payload = {
     source,
     fetchedAt: new Date().toISOString(),
     scoring: { weights: cfg.weights, tiers: cfg.tiers },
+    fb,
     ...dataset,
   };
   cache = { at: Date.now(), payload };

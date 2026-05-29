@@ -63,6 +63,8 @@ export function applyFilters(leads, f) {
 }
 
 // ---- Aggregation -----------------------------------------------------------
+const normKey = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+
 function spendForAdsets(adsetNames, overviewByAdset) {
   let sum = 0;
   let any = false;
@@ -78,11 +80,12 @@ function spendForAdsets(adsetNames, overviewByAdset) {
 
 /**
  * Verdichtet die (gefilterten) Leads nach einer Dimension.
- * Spend wird über die Anzeigengruppen-Übersicht zugeordnet (Adspend je
- * Anzeigengruppe einmal gezählt). Für Creative/Placement ist Spend aus dem
- * Sheet nicht sauber zuordenbar -> kommt mit der Facebook-Anbindung (Phase 2).
+ * Spend/Impressionen/Klicks kommen – sofern vorhanden – aus den Facebook-
+ * Daten (Supermetrics) je Dimension. Fällt darauf zurück: Adspend je
+ * Anzeigengruppe aus der Sheet-Übersicht (nur Kampagne/Anzeigengruppe).
  */
-export function aggregate(leads, dimKey, overviewByAdset, spendAttributable) {
+export function aggregate(leads, dimKey, overviewByAdset, fb) {
+  const fbDim = fb?.byDim?.[dimKey] || null;
   const groups = new Map();
   for (const l of leads) {
     const k = l[dimKey] || '(unbekannt)';
@@ -102,7 +105,15 @@ export function aggregate(leads, dimKey, overviewByAdset, spendAttributable) {
       ? Math.round(scored.reduce((s, l) => s + l.quality.score, 0) / scored.length)
       : null;
     const qualified = ticketLeads.filter((l) => ['A', 'B'].includes(l.quality?.tier)).length;
-    const spend = spendAttributable ? spendForAdsets([...g.adsets], overviewByAdset) : null;
+
+    const m = fbDim ? fbDim[normKey(g.key)] : null;
+    let spend = m ? m.spend : null;
+    if (spend == null && (dimKey === 'adset' || dimKey === 'campaign')) {
+      spend = spendForAdsets([...g.adsets], overviewByAdset);
+    }
+    const impressions = m ? m.impressions : null;
+    const clicks = m ? m.clicks : null;
+
     rows.push({
       key: g.key,
       leads: total,
@@ -112,6 +123,10 @@ export function aggregate(leads, dimKey, overviewByAdset, spendAttributable) {
       qualified,
       qualifiedRate: tickets ? qualified / tickets : null,
       spend,
+      impressions,
+      clicks,
+      cpm: impressions ? (spend ?? 0) / (impressions / 1000) : null,
+      ctr: impressions ? clicks / impressions : null,
       cpl: spend != null && total ? spend / total : null,
       cpt: spend != null && tickets ? spend / tickets : null,
     });
@@ -119,14 +134,19 @@ export function aggregate(leads, dimKey, overviewByAdset, spendAttributable) {
   return rows;
 }
 
-export function computeKpis(leads, overviewByAdset) {
+export function computeKpis(leads, overviewByAdset, fb) {
   const total = leads.length;
   const paid = leads.filter((l) => l.sourceType === 'paid');
   const ticketLeads = leads.filter((l) => l.hasTicket);
   const scored = ticketLeads.filter((l) => l.quality);
   const qualified = ticketLeads.filter((l) => ['A', 'B'].includes(l.quality?.tier)).length;
-  const adsets = new Set(paid.map((l) => l.adset));
-  const spend = spendForAdsets([...adsets], overviewByAdset);
+
+  let spend = fb?.totals?.spend ?? null;
+  let impressions = fb?.totals?.impressions ?? null;
+  if (spend == null) {
+    const adsets = new Set(paid.map((l) => l.adset));
+    spend = spendForAdsets([...adsets], overviewByAdset);
+  }
   return {
     total,
     paid: paid.length,
@@ -137,6 +157,7 @@ export function computeKpis(leads, overviewByAdset) {
     qualified,
     qualifiedRate: ticketLeads.length ? qualified / ticketLeads.length : null,
     spend,
+    impressions,
     cpl: spend != null && total ? spend / total : null,
     cpt: spend != null && ticketLeads.length ? spend / ticketLeads.length : null,
   };

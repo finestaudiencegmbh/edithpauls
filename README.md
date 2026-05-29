@@ -158,17 +158,38 @@ Für `DASHBOARD_USER` / `DASHBOARD_PASSWORD` in der `.env` setzen → Basic-Auth
 
 ---
 
-## Phase 2 — Facebook direkt anbinden
+## Facebook-Ads-Daten via Supermetrics
 
-Vorbereitet in [`server/facebook.js`](server/facebook.js). Geplant: Spend,
-Impressionen und **Placement-Daten** direkt aus der Facebook Marketing API
-ziehen (`breakdowns=publisher_platform,platform_position`) und über die
-Anzeigengruppen-/UTM-Namen mit den Leads zusammenführen. Dann entfällt das
-manuelle Pflegen des Adspends im Sheet komplett und Kosten lassen sich bis auf
-Creative- und Placement-Ebene auswerten.
+Implementiert in [`server/supermetrics.js`](server/supermetrics.js). Wenn
+konfiguriert, holt das Dashboard **Spend, Impressionen, Klicks und Placement**
+live aus der Supermetrics-API und führt sie über die Namen
+(Kampagne/Anzeigengruppe/Creative/Placement) mit den Leads zusammen. Damit gibt
+es CPM, CTR, CPL und Kosten/Ticket **bis auf Creative- und Placement-Ebene** –
+ohne manuelles Pflegen des Adspends im Sheet. Kein Meta-Token nötig,
+Supermetrics übernimmt die Facebook-Authentifizierung.
 
-Dafür nötig: ein Facebook-App-Zugriffstoken mit `ads_read` und die
-Ad-Account-ID (`act_…`) – Felder sind in `.env.example` schon vorbereitet.
+**Einrichtung:**
+1. In Render (oder `.env`) setzen:
+   - `SUPERMETRICS_API_KEY` – dein Supermetrics-API-Key
+   - `SUPERMETRICS_DS_ACCOUNTS` – Ad-Account(s), z. B. `act_1234567890`
+   - `SUPERMETRICS_DS_USER` – der verbundene Supermetrics-User
+2. **Zuverlässigste Variante:** im Supermetrics-Query-Builder eine Facebook-Ads-
+   Abfrage bauen (Felder: Campaign name, Ad set name, Ad name, Publisher
+   platform, Placement, Cost, Impressions, Clicks, Date), als JSON exportieren
+   und in `SUPERMETRICS_QUERY_JSON` einfügen. Das hat Vorrang vor den Defaults.
+3. Alternativ die Default-Felder in [`config/supermetrics.json`](config/supermetrics.json)
+   anpassen. Die Spaltenzuordnung (`columnRoles`) matcht die zurückgegebenen
+   **Anzeigenamen** – robust gegenüber abweichenden Feld-IDs.
+
+Solange nichts gesetzt ist, läuft alles wie gehabt (Adspend je Anzeigengruppe
+aus dem Sheet). Schlägt die Supermetrics-Abfrage fehl, bleibt das Dashboard
+voll funktionsfähig und zeigt oben einen Hinweis.
+
+> Hinweis (v1): Der FB-Spend wird über das eingestellte Zeitfenster
+> (`lookbackDays`) je Dimension summiert und folgt noch nicht dem Datumsfilter
+> im Dashboard. Die Namens-Zuordnung von Placement (Plattform + Position) ist
+> „best effort"; passt sie bei euch nicht exakt, lässt sie sich in
+> `config/supermetrics.json` justieren.
 
 ---
 
@@ -176,12 +197,13 @@ Ad-Account-ID (`act_…`) – Felder sind in `.env.example` schon vorbereitet.
 
 ```
 config/scoring.json     Bewertungsmodell für die Lead-Qualität (anpassbar)
+config/supermetrics.json  Facebook-Ads-Abfrage (Felder, Spaltenzuordnung)
 server/                 Node-Backend
   sheets.js             Google-Sheets-Anbindung (Service-Account)
   parser.js             erkennt & parst die Tabellen
   build.js              Join Leads ↔ Tickets ↔ Adspend, Quelle, Qualität
   scoring.js            Berechnung der Lead-Qualität
-  facebook.js           Phase-2-Andockpunkt
+  supermetrics.js       Facebook-Ads-Daten via Supermetrics-API
   sample-data.js        synthetische Demo-Daten
   index.js              Express-Server (API + Auslieferung)
   parser.test.mjs       Tests

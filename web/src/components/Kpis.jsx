@@ -15,6 +15,7 @@ export default function Kpis({ kpis, dist, tiers }) {
   return (
     <div className="kpi-grid">
       <Card label="Adspend (zugeordnet)" value={fmtEur(kpis.spend)} sub={`${fmtInt(kpis.paid)} bezahlte Leads`} accent="#6366f1" />
+      {kpis.impressions != null && <Card label="Impressionen" value={fmtInt(kpis.impressions)} sub="aus Facebook" />}
       <Card label="Leads gesamt" value={fmtInt(kpis.total)} sub={`${fmtInt(kpis.organic)} organisch`} />
       <Card label="CPL" value={fmtEur(kpis.cpl)} sub="Kosten pro Lead" />
       <Card label="VIP-Tickets" value={fmtInt(kpis.tickets)} sub={`Rate ${fmtPct(kpis.ticketRate)}`} accent="#0ea5e9" />

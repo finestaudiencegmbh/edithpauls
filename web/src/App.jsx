@@ -33,14 +33,15 @@ export default function App() {
   useEffect(() => { load(false); }, []);
 
   const tiers = data?.scoring?.tiers || [];
+  const fb = data?.fb || null;
+  const hasFb = Boolean(fb?.byDim);
   const filtered = useMemo(() => (data ? applyFilters(data.leads, filters) : []), [data, filters]);
-  const kpis = useMemo(() => (data ? computeKpis(filtered, data.overviewByAdset) : null), [data, filtered]);
+  const kpis = useMemo(() => (data ? computeKpis(filtered, data.overviewByAdset, fb) : null), [data, filtered, fb]);
   const dist = useMemo(() => (data ? tierDistribution(filtered, tiers) : {}), [data, filtered, tiers]);
 
-  const spendAttributable = tab === 'campaign' || tab === 'adset';
   const rows = useMemo(
-    () => (data ? aggregate(filtered, tab, data.overviewByAdset, spendAttributable) : []),
-    [data, filtered, tab, spendAttributable]
+    () => (data ? aggregate(filtered, tab, data.overviewByAdset, fb) : []),
+    [data, filtered, tab, fb]
   );
 
   const selectDim = (key) => setFilters((f) => ({ ...f, [tab]: f[tab] === key ? '' : key }));
@@ -56,6 +57,7 @@ export default function App() {
         </div>
         <div className="topbar-right">
           {data?.source === 'demo' && <span className="demo-badge" title="Es werden synthetische Beispieldaten angezeigt. Google-Anbindung in der .env konfigurieren.">DEMO-Daten</span>}
+          {hasFb && <span className="fb-badge" title={`Facebook-Daten via Supermetrics · ${fb.rows} Zeilen`}>FB live</span>}
           {data && <span className="updated">Stand: {fmtDate(data.fetchedAt)}</span>}
           <button className="refresh-btn" onClick={() => load(true)} disabled={loading}>{loading ? '…' : '↻ Aktualisieren'}</button>
         </div>
@@ -65,6 +67,13 @@ export default function App() {
         <div className="error-banner">
           <strong>Fehler:</strong> {error}
           <div className="hint">Prüfe Service-Account, SPREADSHEET_ID und ob das Sheet für die Service-Account-E-Mail freigegeben ist (siehe README).</div>
+        </div>
+      )}
+
+      {fb?.configured && fb?.error && (
+        <div className="error-banner warn">
+          <strong>Facebook (Supermetrics):</strong> {fb.error}
+          <div className="hint">Das Sheet-Dashboard funktioniert normal weiter. Prüfe SUPERMETRICS_API_KEY und die Query (ds_id, ds_accounts, ds_user) in der Konfiguration.</div>
         </div>
       )}
 
@@ -80,10 +89,10 @@ export default function App() {
               ))}
               <span className="tabs-hint">Zeile anklicken = danach filtern</span>
             </div>
-            {!spendAttributable && (
-              <div className="info-note">Adspend ist je Anzeigengruppe im Sheet hinterlegt – auf Creative-/Placement-Ebene kommt er mit der Facebook-Anbindung (Phase 2).</div>
+            {!hasFb && (tab === 'creative' || tab === 'placement') && (
+              <div className="info-note">Adspend ist je Anzeigengruppe im Sheet hinterlegt – auf Creative-/Placement-Ebene kommt er über die Facebook-Anbindung (Supermetrics).</div>
             )}
-            <BreakdownTable rows={rows} dimLabel={DIMENSIONS.find((d) => d.key === tab).label} spendAttributable={spendAttributable} onSelect={selectDim} tiers={tiers} />
+            <BreakdownTable rows={rows} dimLabel={DIMENSIONS.find((d) => d.key === tab).label} onSelect={selectDim} tiers={tiers} />
           </section>
 
           <section className="panel">

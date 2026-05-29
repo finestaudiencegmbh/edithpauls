@@ -30,8 +30,12 @@ services:
       # Leer lassen = Demo-Modus. Sobald gesetzt -> echte Sheet-Daten live.
       - key: GOOGLE_SERVICE_ACCOUNT_JSON
         sync: false
-      # --- Facebook (Phase 2) – später ausfüllen ---
-      - key: FB_ACCESS_TOKEN
+      # --- Facebook-Ads via Supermetrics – optional, leer = aus ---
+      - key: SUPERMETRICS_API_KEY
         sync: false
-      - key: FB_AD_ACCOUNT_ID
+      - key: SUPERMETRICS_DS_ACCOUNTS
+        sync: false
+      - key: SUPERMETRICS_DS_USER
+        sync: false
+      - key: SUPERMETRICS_QUERY_JSON
         sync: false

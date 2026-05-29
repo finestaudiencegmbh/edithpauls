@@ -7,6 +7,7 @@ import BreakdownTable from './components/BreakdownTable.jsx';
 import LeadsTable from './components/LeadsTable.jsx';
 import TimeChart from './components/TimeChart.jsx';
 import AdHierarchy from './components/AdHierarchy.jsx';
+import DateRangePicker from './components/DateRangePicker.jsx';
 import { fmtEur, fmtInt } from './lib.js';
 
 const EMPTY_FILTERS = {
@@ -19,13 +20,14 @@ export default function App() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [range, setRange] = useState({ from: '', to: '' });
   const [tab, setTab] = useState('campaign');
 
-  const load = async (refresh = false) => {
+  const load = async (refresh = false, r = range) => {
     setLoading(true);
     setError(null);
     try {
-      setData(await fetchData({ refresh }));
+      setData(await fetchData({ refresh, from: r.from, to: r.to }));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -34,6 +36,13 @@ export default function App() {
   };
 
   useEffect(() => { load(false); }, []);
+
+  const applyRange = (r) => {
+    setRange(r);
+    // Zeitraum steuert Server (FB) UND die clientseitige Lead-Filterung
+    setFilters((f) => ({ ...f, from: r.from, to: r.to }));
+    load(false, r);
+  };
 
   const tiers = data?.scoring?.tiers || [];
   const fb = data?.fb || null;
@@ -59,8 +68,9 @@ export default function App() {
           <p className="subtitle">Lead- &amp; VIP-Ticket-Dashboard · 15.–18.06.</p>
         </div>
         <div className="topbar-right">
+          <DateRangePicker from={range.from} to={range.to} onApply={applyRange} />
           {data?.source === 'demo' && <span className="demo-badge" title="Es werden synthetische Beispieldaten angezeigt. Google-Anbindung in der .env konfigurieren.">DEMO-Daten</span>}
-          {hasFb && <span className="fb-badge" title={`Facebook-Daten via Supermetrics · ${fb.rows} Zeilen`}>FB live</span>}
+          {hasFb && <span className="fb-badge" title={`Facebook-Daten via ${fb.provider === 'meta' ? 'Meta' : 'Supermetrics'} · ${fb.rows} Zeilen`}>FB live</span>}
           {data && <span className="updated">Stand: {fmtDate(data.fetchedAt)}</span>}
           <button className="refresh-btn" onClick={() => load(true)} disabled={loading}>
             <svg className={`btn-icon ${loading ? 'spin' : ''}`} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -90,7 +100,7 @@ export default function App() {
 
       {data && (
         <>
-          <Filters leads={data.leads} filters={filters} setFilters={setFilters} tiers={tiers} onReset={() => setFilters(EMPTY_FILTERS)} />
+          <Filters leads={data.leads} filters={filters} setFilters={setFilters} tiers={tiers} onReset={() => setFilters({ ...EMPTY_FILTERS, from: range.from, to: range.to })} />
           <Kpis kpis={kpis} dist={dist} tiers={tiers} />
 
           {(hasFb && fb.daily) && (

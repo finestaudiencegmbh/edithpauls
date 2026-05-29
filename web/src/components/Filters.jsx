@@ -77,14 +77,6 @@ export default function Filters({ leads, filters, setFilters, tiers, onReset }) 
             <Select label="Einkommen" value={filters.income} onChange={(v) => set({ income: v })} options={answerValues(leads, 'income')} />
             <Select label="Immobilien" value={filters.realEstate} onChange={(v) => set({ realEstate: v })} options={answerValues(leads, 'realEstate')} />
             <Select label="Beschäftigung" value={filters.employment} onChange={(v) => set({ employment: v })} options={answerValues(leads, 'employment')} />
-            <label className="filter">
-              <span>Zeitraum von</span>
-              <input type="date" value={filters.from} onChange={(e) => set({ from: e.target.value })} />
-            </label>
-            <label className="filter">
-              <span>bis</span>
-              <input type="date" value={filters.to} onChange={(e) => set({ to: e.target.value })} />
-            </label>
           </div>
         </div>
       )}

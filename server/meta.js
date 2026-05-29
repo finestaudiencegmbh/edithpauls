@@ -172,11 +172,11 @@ async function fetchStatus(c) {
   return { campaignStatus, adsetStatus };
 }
 
-/** Holt alle Meta-Daten in einem Rutsch. */
-export async function fetchMetaAll() {
+/** Holt alle Meta-Daten in einem Rutsch. Optional mit explizitem Zeitraum. */
+export async function fetchMetaAll(customRange) {
   if (!isMetaConfigured()) return null;
   const c = cfg();
-  const range = dateRange(c.lookback);
+  const range = customRange?.since && customRange?.until ? customRange : dateRange(c.lookback);
   const [records, entities, daily, status] = await Promise.all([
     fetchPlacementRecords(c, range),
     fetchEntities(c, range),

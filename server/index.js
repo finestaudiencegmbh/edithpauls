@@ -40,12 +40,14 @@ if (AUTH_USER && AUTH_PASS) {
   });
 }
 
-// --- Daten-Cache ------------------------------------------------------------
-let cache = { at: 0, payload: null };
+// --- Daten-Cache (je Zeitraum) ---------------------------------------------
+const cache = new Map(); // key -> { at, payload }
 
-async function loadDataset({ refresh = false } = {}) {
-  if (!refresh && cache.payload && Date.now() - cache.at < CACHE_TTL) {
-    return cache.payload;
+async function loadDataset({ refresh = false, from = '', to = '' } = {}) {
+  const key = `${from}|${to}`;
+  const hit = cache.get(key);
+  if (!refresh && hit && Date.now() - hit.at < CACHE_TTL) {
+    return hit.payload;
   }
   const cfg = loadScoringConfig();
   let parsed;
@@ -62,15 +64,18 @@ async function loadDataset({ refresh = false } = {}) {
 
   // Facebook-Ads-Daten: bevorzugt direkt über die Meta Marketing API,
   // alternativ über Supermetrics. Fehler hier dürfen das Sheet-Dashboard
-  // nicht blockieren.
+  // nicht blockieren. Der Zeitraum (from/to) wird an Meta durchgereicht.
+  const range = from && to ? { since: from, until: to } : null;
   const metaOn = isMetaConfigured();
   const smOn = isSupermetricsConfigured();
   let fb = { configured: metaOn || smOn, provider: metaOn ? 'meta' : smOn ? 'supermetrics' : null, error: null, totals: null, byDim: null, rows: 0, hierarchy: null, daily: null };
   if (metaOn) {
     try {
-      const all = await fetchMetaAll();
+      const all = await fetchMetaAll(range);
       const agg = aggregateFb(all.records);
-      const combined = combineMetaWithLeads(all, dataset.leads);
+      // Leads für denselben Zeitraum, damit FB-Hierarchie & Leads konsistent sind
+      const leadsInRange = filterLeadsByRange(dataset.leads, from, to);
+      const combined = combineMetaWithLeads(all, leadsInRange);
       fb = { configured: true, provider: 'meta', error: null, fetchedAt: new Date().toISOString(), ...agg, hierarchy: combined.hierarchy, daily: combined.daily };
     } catch (err) {
       console.error('Meta-Fehler:', err.message);
@@ -90,12 +95,25 @@ async function loadDataset({ refresh = false } = {}) {
   const payload = {
     source,
     fetchedAt: new Date().toISOString(),
+    range: range || null,
     scoring: { weights: cfg.weights, tiers: cfg.tiers },
     fb,
     ...dataset,
   };
-  cache = { at: Date.now(), payload };
+  cache.set(key, { at: Date.now(), payload });
   return payload;
+}
+
+/** Begrenzt Leads auf [from,to] (YYYY-MM-DD, inklusive). Leer = keine Grenze. */
+function filterLeadsByRange(leads, from, to) {
+  if (!from && !to) return leads;
+  return leads.filter((l) => {
+    const day = (l.wonAt || '').slice(0, 10);
+    if (!day) return false;
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    return true;
+  });
 }
 
 // --- API --------------------------------------------------------------------
@@ -106,7 +124,10 @@ app.get('/api/health', (req, res) => {
 app.get('/api/data', async (req, res) => {
   try {
     const refresh = req.query.refresh === '1' || req.query.refresh === 'true';
-    const payload = await loadDataset({ refresh });
+    const isYmd = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
+    const from = isYmd(req.query.from) ? req.query.from : '';
+    const to = isYmd(req.query.to) ? req.query.to : '';
+    const payload = await loadDataset({ refresh, from, to });
     res.json(payload);
   } catch (err) {
     console.error('Fehler beim Laden der Daten:', err);

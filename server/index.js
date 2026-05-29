@@ -12,7 +12,7 @@ import { getSampleParsed } from './sample-data.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const CACHE_TTL = (Number(process.env.CACHE_TTL_SECONDS) || 120) * 1000;
 
 const app = express();

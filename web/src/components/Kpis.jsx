@@ -3,7 +3,8 @@ import { fmtEur, fmtInt, fmtPct, fmtScore } from '../lib.js';
 
 function Card({ label, value, sub, accent }) {
   return (
-    <div className="kpi-card" style={accent ? { borderTopColor: accent } : undefined}>
+    <div className="kpi-card">
+      <span className="kpi-accent" style={accent ? { background: accent } : undefined} />
       <div className="kpi-value">{value}</div>
       <div className="kpi-label">{label}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
@@ -14,10 +15,10 @@ function Card({ label, value, sub, accent }) {
 export default function Kpis({ kpis, dist, tiers }) {
   return (
     <div className="kpi-grid">
-      <Card label="Adspend (zugeordnet)" value={fmtEur(kpis.spend)} sub={`${fmtInt(kpis.paid)} bezahlte Leads`} accent="#6366f1" />
+      <Card label="Adspend (zugeordnet)" value={fmtEur(kpis.spend)} sub={`${fmtInt(kpis.paid)} bezahlte Leads`} accent="#0071e3" />
       <Card label="Leads gesamt" value={fmtInt(kpis.total)} sub={`${fmtInt(kpis.organic)} organisch`} />
       <Card label="CPL" value={fmtEur(kpis.cpl)} sub="Kosten pro Lead" />
-      <Card label="VIP-Tickets" value={fmtInt(kpis.tickets)} sub={`Rate ${fmtPct(kpis.ticketRate)}`} accent="#0ea5e9" />
+      <Card label="VIP-Tickets" value={fmtInt(kpis.tickets)} sub={`Rate ${fmtPct(kpis.ticketRate)}`} accent="#0a7e8c" />
       <Card label="Kosten / Ticket" value={fmtEur(kpis.cpt)} />
       <Card label="Ø Lead-Qualität" value={fmtScore(kpis.avgQuality)} sub="von 100" accent="#16a34a" />
       <Card label="Qualifizierte Tickets" value={fmtInt(kpis.qualified)} sub={`Tier A/B · ${fmtPct(kpis.qualifiedRate)}`} accent="#16a34a" />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { uniqueValues, answerValues } from '../lib.js';
 
 function Select({ label, value, onChange, options, allLabel = 'Alle' }) {
@@ -16,6 +16,7 @@ function Select({ label, value, onChange, options, allLabel = 'Alle' }) {
 }
 
 export default function Filters({ leads, filters, setFilters, tiers, onReset }) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const set = (patch) => setFilters((f) => ({ ...f, ...patch }));
   const toggleTier = (key) => {
     set({
@@ -27,10 +28,10 @@ export default function Filters({ leads, filters, setFilters, tiers, onReset }) 
 
   return (
     <div className="filters">
-      <div className="filters-row">
+      <div className="filters-primary">
         <label className="filter grow">
           <span>Suche (Name, E-Mail, Creative)</span>
-          <input type="search" value={filters.search} placeholder="suchen…" onChange={(e) => set({ search: e.target.value })} />
+          <input type="search" value={filters.search} placeholder="Leads durchsuchen…" onChange={(e) => set({ search: e.target.value })} />
         </label>
         <label className="filter">
           <span>Quelle</span>
@@ -44,30 +45,15 @@ export default function Filters({ leads, filters, setFilters, tiers, onReset }) 
           <input type="checkbox" checked={filters.onlyTickets} onChange={(e) => set({ onlyTickets: e.target.checked })} />
           <span>Nur VIP-Tickets</span>
         </label>
+        <button className={`more-btn ${showAdvanced ? 'open' : ''}`} onClick={() => setShowAdvanced((v) => !v)}>
+          {showAdvanced ? 'Weniger Filter' : 'Mehr Filter'}
+          <svg className="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
       </div>
 
-      <div className="filters-row">
-        <Select label="Kampagne" value={filters.campaign} onChange={(v) => set({ campaign: v })} options={uniqueValues(leads, 'campaign')} />
-        <Select label="Anzeigengruppe" value={filters.adset} onChange={(v) => set({ adset: v })} options={uniqueValues(leads, 'adset')} />
-        <Select label="Creative" value={filters.creative} onChange={(v) => set({ creative: v })} options={uniqueValues(leads, 'creative')} />
-        <Select label="Placement" value={filters.placement} onChange={(v) => set({ placement: v })} options={uniqueValues(leads, 'placement')} />
-      </div>
-
-      <div className="filters-row">
-        <Select label="Einkommen" value={filters.income} onChange={(v) => set({ income: v })} options={answerValues(leads, 'income')} />
-        <Select label="Immobilien" value={filters.realEstate} onChange={(v) => set({ realEstate: v })} options={answerValues(leads, 'realEstate')} />
-        <Select label="Beschäftigung" value={filters.employment} onChange={(v) => set({ employment: v })} options={answerValues(leads, 'employment')} />
-        <label className="filter">
-          <span>Zeitraum von</span>
-          <input type="date" value={filters.from} onChange={(e) => set({ from: e.target.value })} />
-        </label>
-        <label className="filter">
-          <span>bis</span>
-          <input type="date" value={filters.to} onChange={(e) => set({ to: e.target.value })} />
-        </label>
-      </div>
-
-      <div className="filters-row tier-row">
+      <div className="filters-row tier-row" style={{ marginTop: 18 }}>
         <span className="tier-label">Qualität:</span>
         {tiers.map((t) => (
           <button key={t.key} className={`tier-chip ${filters.tiers.includes(t.key) ? 'active' : ''}`} style={filters.tiers.includes(t.key) ? { background: t.color, borderColor: t.color } : { borderColor: t.color, color: t.color }} onClick={() => toggleTier(t.key)}>
@@ -77,6 +63,31 @@ export default function Filters({ leads, filters, setFilters, tiers, onReset }) 
         <button className={`tier-chip ${filters.tiers.includes('none') ? 'active' : ''}`} onClick={() => toggleTier('none')}>ohne Score</button>
         <button className="reset-btn" onClick={onReset}>Filter zurücksetzen</button>
       </div>
+
+      {showAdvanced && (
+        <div className="filters-advanced">
+          <div className="filters-row">
+            <Select label="Kampagne" value={filters.campaign} onChange={(v) => set({ campaign: v })} options={uniqueValues(leads, 'campaign')} />
+            <Select label="Anzeigengruppe" value={filters.adset} onChange={(v) => set({ adset: v })} options={uniqueValues(leads, 'adset')} />
+            <Select label="Creative" value={filters.creative} onChange={(v) => set({ creative: v })} options={uniqueValues(leads, 'creative')} />
+            <Select label="Placement" value={filters.placement} onChange={(v) => set({ placement: v })} options={uniqueValues(leads, 'placement')} />
+          </div>
+
+          <div className="filters-row">
+            <Select label="Einkommen" value={filters.income} onChange={(v) => set({ income: v })} options={answerValues(leads, 'income')} />
+            <Select label="Immobilien" value={filters.realEstate} onChange={(v) => set({ realEstate: v })} options={answerValues(leads, 'realEstate')} />
+            <Select label="Beschäftigung" value={filters.employment} onChange={(v) => set({ employment: v })} options={answerValues(leads, 'employment')} />
+            <label className="filter">
+              <span>Zeitraum von</span>
+              <input type="date" value={filters.from} onChange={(e) => set({ from: e.target.value })} />
+            </label>
+            <label className="filter">
+              <span>bis</span>
+              <input type="date" value={filters.to} onChange={(e) => set({ to: e.target.value })} />
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

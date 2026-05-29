@@ -57,7 +57,13 @@ export default function App() {
         <div className="topbar-right">
           {data?.source === 'demo' && <span className="demo-badge" title="Es werden synthetische Beispieldaten angezeigt. Google-Anbindung in der .env konfigurieren.">DEMO-Daten</span>}
           {data && <span className="updated">Stand: {fmtDate(data.fetchedAt)}</span>}
-          <button className="refresh-btn" onClick={() => load(true)} disabled={loading}>{loading ? '…' : '↻ Aktualisieren'}</button>
+          <button className="refresh-btn" onClick={() => load(true)} disabled={loading}>
+            <svg className={`btn-icon ${loading ? 'spin' : ''}`} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v6h-6" />
+            </svg>
+            {loading ? 'Lädt…' : 'Aktualisieren'}
+          </button>
         </div>
       </header>
 
@@ -74,10 +80,18 @@ export default function App() {
           <Kpis kpis={kpis} dist={dist} tiers={tiers} />
 
           <section className="panel">
-            <div className="tabs">
-              {DIMENSIONS.map((d) => (
-                <button key={d.key} className={`tab ${tab === d.key ? 'active' : ''}`} onClick={() => setTab(d.key)}>{d.label}</button>
-              ))}
+            <div className="panel-head">
+              <div>
+                <h2>Performance nach Ebene</h2>
+                <span className="panel-sub">Vergleiche Kampagnen, Anzeigengruppen, Creatives und Placements</span>
+              </div>
+            </div>
+            <div className="tabs-row">
+              <div className="tabs">
+                {DIMENSIONS.map((d) => (
+                  <button key={d.key} className={`tab ${tab === d.key ? 'active' : ''}`} onClick={() => setTab(d.key)}>{d.label}</button>
+                ))}
+              </div>
               <span className="tabs-hint">Zeile anklicken = danach filtern</span>
             </div>
             {!spendAttributable && (
@@ -87,7 +101,12 @@ export default function App() {
           </section>
 
           <section className="panel">
-            <h2>Alle Leads</h2>
+            <div className="panel-head">
+              <div>
+                <h2>Alle Leads</h2>
+                <span className="panel-sub">Zeile anklicken für Details &amp; Fragebogen-Antworten</span>
+              </div>
+            </div>
             <LeadsTable leads={filtered} tiers={tiers} />
           </section>
 

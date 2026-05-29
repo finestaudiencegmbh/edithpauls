@@ -28,10 +28,32 @@ export function parseAmount(text) {
   return Math.round((min + max) / 2);
 }
 
+/** Mittelwert des Einkommens in €/Monat (für Stufen + Haushaltsregel). */
+export function incomeMid(text) {
+  if (!text) return null;
+  const t = String(text).toLowerCase();
+  // "weniger als 1.000" -> als ~750 werten (untere Stufe)
+  if (/weniger als|unter|bis zu/.test(t)) {
+    const n = parseAmount(text);
+    return n != null ? n * 0.75 : null;
+  }
+  // "mehr als 5.000 / über 5000" -> klar über der Top-Schwelle
+  if (/mehr als|über|ab /.test(t)) {
+    const n = parseAmount(text);
+    return n != null ? n * 1.25 : null;
+  }
+  return parseAmount(text);
+}
+
 function scoreIncome(text, cfg) {
-  const mid = parseAmount(text);
+  const mid = incomeMid(text);
   if (mid == null) return null;
-  return clamp01(mid / cfg.income.fullScoreAt);
+  // Stufenmodell (neue Config) bevorzugt, sonst Fallback auf fullScoreAt
+  if (Array.isArray(cfg.income.tiers)) {
+    const tier = cfg.income.tiers.find((t) => mid >= t.atLeast);
+    return tier ? tier.score : 0.05;
+  }
+  return clamp01(mid / (cfg.income.fullScoreAt || 5000));
 }
 
 function scoreInvested(text, cfg) {
@@ -108,7 +130,21 @@ export function computeQuality(answers, cfg) {
     }
   }
   if (sumW === 0) return null;
-  const score = Math.round((sum / sumW) * 100);
+  let score = Math.round((sum / sumW) * 100);
+  let capped = false;
+
+  // Harte Haushaltsregel: niedriges Einkommen + Partner-Haushalt => Bad Quality.
+  const hr = cfg.householdRule;
+  if (hr?.enabled) {
+    const mid = incomeMid(answers.income);
+    const rel = String(answers.relationship || '').toLowerCase();
+    const hasPartner = (hr.relationships || []).some((r) => rel.includes(String(r).toLowerCase()));
+    if (mid != null && mid < hr.incomeBelow && hasPartner) {
+      score = Math.min(score, hr.cappedScore ?? 20);
+      capped = true;
+    }
+  }
+
   const tier = tierFor(score, cfg);
-  return { score, tier: tier?.key ?? null, tierLabel: tier?.label ?? null, breakdown };
+  return { score, tier: tier?.key ?? null, tierLabel: tier?.label ?? null, breakdown, capped };
 }

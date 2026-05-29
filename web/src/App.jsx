@@ -11,7 +11,7 @@ import DateRangePicker from './components/DateRangePicker.jsx';
 import { fmtEur, fmtInt } from './lib.js';
 
 const EMPTY_FILTERS = {
-  search: '', sourceType: 'paid', campaign: '', adset: '', creative: '', placement: '',
+  search: '', sourceType: 'all', campaign: '', adset: '', creative: '', placement: '',
   income: '', realEstate: '', employment: '', from: '', to: '', onlyTickets: false, tiers: [],
 };
 

@@ -10,12 +10,22 @@ function placementLabel(term) {
   return t.replace(/_/g, ' ');
 }
 
+/** Quellen, die immer als organisch gelten – unabhängig vom UTM-Schema. */
+function isOrganicSource(utm) {
+  const hay = [utm.source, utm.medium, utm.campaign, utm.term]
+    .map((v) => collapse(v).toLowerCase())
+    .join(' | ');
+  return /manychat|bio/.test(hay);
+}
+
 /**
  * Entscheidet, ob ein Datensatz aus bezahlter Werbung stammt.
  * Bezahlte Anzeigengruppen folgen dem Schema "X | Y | Z | ..." und/oder
  * tauchen in der Adspend-Übersicht auf. Alles andere gilt als organisch.
  */
 function isPaid(utm, paidAdsets) {
+  // Harte Regel: ManyChat / Bio ist immer organisch.
+  if (isOrganicSource(utm)) return false;
   const src = collapse(utm.source);
   if (!src) return false;
   if (paidAdsets.has(src.toLowerCase())) return true;

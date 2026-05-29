@@ -1,39 +1,38 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { fmtEur, fmtInt, fmtPct } from '../lib.js';
 
 const fmtEur2 = (n) => (n == null ? '–' : new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(n));
 const fmtScore = (n) => (n == null ? '–' : String(Math.round(n)));
 
-/** Kennzahlen in drei Sektionen – ohne horizontales Scrollen, alles umbruchfähig. */
-function Metrics({ n, leadHidden }) {
-  const lead = (v) => (leadHidden ? '–' : v);
+/** Kennzahlen einer aggregierten Zeile in drei Sektionen (kein H-Scroll). */
+function Metrics({ r }) {
   const groups = [
     {
       title: 'Ergebnis', cls: 'g-result',
       items: [
-        ['Adspend', fmtEur(n.spend)],
-        ['Leads', lead(fmtInt(n.leads))],
-        ['Tickets', lead(fmtInt(n.tickets))],
-        ['€/Lead', lead(fmtEur(n.cpl))],
-        ['€/Ticket', lead(fmtEur(n.cpt))],
+        ['Adspend', fmtEur(r.spend)],
+        ['Leads', fmtInt(r.leads)],
+        ['Tickets', fmtInt(r.tickets)],
+        ['€/Lead', fmtEur(r.cpl)],
+        ['€/Ticket', fmtEur(r.cpt)],
       ],
     },
     {
       title: 'Qualität & Funnel', cls: 'g-quality',
       items: [
-        ['Quali-Rate', lead(fmtPct(n.qualifiedRate))],
-        ['Ø Quali', lead(fmtScore(n.avgQuality))],
-        ['CVR Start', lead(fmtPct(n.cvrStart))],
-        ['CVR Ticket', lead(fmtPct(n.cvrTicket))],
+        ['Quali-Rate', fmtPct(r.qualifiedRate)],
+        ['Ø Quali', fmtScore(r.avgQuality)],
+        ['CVR Start', fmtPct(r.cvrStart)],
+        ['CVR Ticket', fmtPct(r.ticketRate)],
       ],
     },
     {
       title: 'Facebook', cls: 'g-fb',
       items: [
-        ['CPM', fmtEur2(n.cpm)],
-        ['CTR ausg.', fmtPct(n.outboundCtr)],
-        ['CPC ausg.', fmtEur2(n.cpoc)],
-        ['Ausg. Klicks', fmtInt(n.outboundClicks)],
+        ['CPM', fmtEur2(r.cpm)],
+        ['CTR ausg.', fmtPct(r.outboundCtr)],
+        ['CPC ausg.', fmtEur2(r.cpoc)],
+        ['Ausg. Klicks', fmtInt(r.outboundClicks)],
       ],
     },
   ];
@@ -56,89 +55,53 @@ function Metrics({ n, leadHidden }) {
   );
 }
 
-function StatusDot({ active }) {
-  if (active == null) return null;
-  return <span className={`status-dot ${active ? 'on' : 'off'}`} title={active ? 'Aktiv' : 'Pausiert'} />;
-}
+const SORTS = [
+  { key: 'spend', label: 'Adspend' },
+  { key: 'leads', label: 'Leads' },
+  { key: 'tickets', label: 'Tickets' },
+  { key: 'cpl', label: '€/Lead' },
+  { key: 'qualifiedRate', label: 'Quali-Rate' },
+  { key: 'cvrStart', label: 'CVR Start' },
+];
 
-export default function CampaignCards({ hierarchy }) {
-  const [open, setOpen] = useState(() => new Set());
-  const [onlyActive, setOnlyActive] = useState(true);
-  const toggle = (id) => setOpen((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-
-  const campaigns = (hierarchy || []).filter((c) => !onlyActive || c.active !== false);
+/**
+ * Karten-Ansicht der aktuell gewählten Ebene. Klick auf eine Karte = eine
+ * Ebene tiefer (Drill-Down via onDrill). Sortierung oben rechts.
+ */
+export default function CampaignCards({ rows, dimKey, canDrill, onDrill, sort, setSort }) {
+  const sorted = [...rows].sort((a, b) => {
+    const av = a[sort.col]; const bv = b[sort.col];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    const cmp = typeof av === 'string' ? av.localeCompare(bv, 'de') : av - bv;
+    return sort.dir === 'asc' ? cmp : -cmp;
+  });
 
   return (
     <div>
-      <div className="table-toolbar">
-        <label className="filter checkbox" style={{ paddingBottom: 0 }}>
-          <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} />
-          <span>Nur aktive anzeigen</span>
+      <div className="cc-sortbar">
+        <span className="muted">{rows.length} {dimKey === 'campaign' ? 'Kampagnen' : dimKey === 'adset' ? 'Anzeigengruppen' : dimKey === 'creative' ? 'Creatives' : 'Placements'}</span>
+        <label className="cc-sort">
+          Sortieren:
+          <select value={sort.col} onChange={(e) => setSort({ col: e.target.value, dir: 'desc' })}>
+            {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
         </label>
-        <span className="muted">{campaigns.length} Kampagnen</span>
       </div>
 
       <div className="cc-list">
-        {campaigns.map((c) => {
-          const cOpen = open.has(c.id);
-          const leadHidden = c.leadCampaign === false;
-          const adsets = c.adsets.filter((a) => !onlyActive || a.active !== false);
-          return (
-            <div key={c.id} className={`cc-card ${leadHidden ? 'is-traffic' : ''}`}>
-              <button className="cc-head" onClick={() => toggle(c.id)}>
-                <span className={`caret ${cOpen ? 'open' : ''}`}>▶</span>
-                <StatusDot active={c.active} />
-                <span className="cc-name" title={c.name}>{c.name}</span>
-                {leadHidden && <span className="traffic-tag">Traffic</span>}
-                <span className="cc-head-spend">{fmtEur(c.spend)}</span>
-              </button>
-              <Metrics n={c} leadHidden={leadHidden} />
-
-              {cOpen && (
-                <div className="cc-children">
-                  {adsets.map((a) => {
-                    const aId = `${c.id}/${a.id}`;
-                    const aOpen = open.has(aId);
-                    const ads = a.ads || [];
-                    return (
-                      <div key={aId} className="cc-sub">
-                        <button className="cc-subhead" onClick={() => toggle(aId)}>
-                          <span className={`caret ${aOpen ? 'open' : ''}`}>▶</span>
-                          <StatusDot active={a.active} />
-                          <span className="cc-subname" title={a.name}>{a.name}</span>
-                          <span className="cc-sub-meta">{fmtEur(a.spend)} · {leadHidden ? '–' : fmtInt(a.leads)} Leads</span>
-                        </button>
-                        {aOpen && (
-                          <div className="cc-sub-body">
-                            <Metrics n={a} leadHidden={leadHidden} />
-                            {ads.length > 0 && (
-                              <div className="cc-ads">
-                                {ads.map((ad) => (
-                                  <div key={ad.id} className="cc-ad">
-                                    <div className="cc-ad-name" title={ad.name}>{ad.name}</div>
-                                    <div className="cc-ad-metrics">
-                                      <span>{fmtEur(ad.spend)}</span>
-                                      <span>{leadHidden ? '–' : `${fmtInt(ad.leads)} Leads`}</span>
-                                      <span>{leadHidden ? '–' : `${fmtInt(ad.tickets)} Tickets`}</span>
-                                      <span>{leadHidden ? '–' : `CVR ${fmtPct(ad.cvrStart)}`}</span>
-                                      <span>CTR {fmtPct(ad.outboundCtr)}</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {ads.length === 0 && <div className="muted" style={{ padding: '8px 2px' }}>keine Werbeanzeigen</div>}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+        {sorted.map((r) => (
+          <div key={r.key} className="cc-card">
+            <div className={`cc-head ${canDrill ? 'drill' : ''}`} onClick={() => canDrill && onDrill(r.key)} title={canDrill ? 'Klicken = eine Ebene tiefer' : undefined}>
+              <span className="cc-name" title={r.key}>{r.key}</span>
+              {canDrill && <span className="cc-drill-hint">eine Ebene tiefer ›</span>}
+              <span className="cc-head-spend">{fmtEur(r.spend)}</span>
             </div>
-          );
-        })}
-        {campaigns.length === 0 && <div className="empty">Keine {onlyActive ? 'aktiven ' : ''}Kampagnen gefunden.</div>}
+            <Metrics r={r} />
+          </div>
+        ))}
+        {sorted.length === 0 && <div className="empty">Keine Daten für die aktuelle Auswahl.</div>}
       </div>
     </div>
   );

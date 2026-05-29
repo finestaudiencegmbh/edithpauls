@@ -6,7 +6,7 @@ import Filters from './components/Filters.jsx';
 import BreakdownTable from './components/BreakdownTable.jsx';
 import LeadsTable from './components/LeadsTable.jsx';
 import TimeChart from './components/TimeChart.jsx';
-import AdHierarchy from './components/AdHierarchy.jsx';
+import CampaignCards from './components/CampaignCards.jsx';
 import DateRangePicker from './components/DateRangePicker.jsx';
 import SourcesView from './components/SourcesView.jsx';
 import { fmtEur, fmtInt } from './lib.js';
@@ -191,7 +191,7 @@ export default function App() {
               hasFb && fb.hierarchy ? (
                 <section className="panel">
                   <div className="panel-head"><div><h2>Kampagnen-Aufschlüsselung</h2><span className="panel-sub">Kampagne → Anzeigengruppe → Creative · Facebook-Kennzahlen + Lead-Attribution</span></div></div>
-                  <AdHierarchy hierarchy={fb.hierarchy} />
+                  <CampaignCards hierarchy={fb.hierarchy} />
                 </section>
               ) : (
                 <section className="panel">

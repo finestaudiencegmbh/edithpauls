@@ -31,8 +31,6 @@ export default function App() {
   const [range, setRange] = useState({ from: '', to: '' });
   const [tab, setTab] = useState('campaign');
   const [view, setView] = useState('dashboard');
-  const [campTab, setCampTab] = useState('campaign');
-  const [campSort, setCampSort] = useState({ col: 'spend', dir: 'desc' });
 
   const load = async (refresh = false, r = range) => {
     setLoading(true);
@@ -75,17 +73,6 @@ export default function App() {
     setFilters((f) => ({ ...f, [tab]: key }));
     const idx = DRILL_ORDER.indexOf(tab);
     if (idx >= 0 && idx < DRILL_ORDER.length - 1) setTab(DRILL_ORDER[idx + 1]);
-  };
-
-  // --- Kampagnen-Reiter: eigene Aggregation + Drill-Down ---
-  const campRows = useMemo(
-    () => (data ? aggregate(filtered, campTab, data.overviewByAdset, fb) : []),
-    [data, filtered, campTab, fb]
-  );
-  const campDrill = (key) => {
-    setFilters((f) => ({ ...f, [campTab]: key }));
-    const idx = DRILL_ORDER.indexOf(campTab);
-    if (idx >= 0 && idx < DRILL_ORDER.length - 1) setCampTab(DRILL_ORDER[idx + 1]);
   };
 
   if (loading && !data) return <div className="loader">Lade Daten…</div>;
@@ -201,36 +188,17 @@ export default function App() {
             )}
 
             {view === 'campaigns' && (
-              <section className="panel">
-                <div className="panel-head"><div><h2>Kampagnen-Aufschlüsselung</h2><span className="panel-sub">Ebene wählen · Karte anklicken = eine Ebene tiefer · Facebook-Kennzahlen + Lead-Attribution</span></div></div>
-                <div className="tabs-row">
-                  <div className="tabs">
-                    {DIMENSIONS.map((d) => (
-                      <button key={d.key} className={`tab ${campTab === d.key ? 'active' : ''}`} onClick={() => setCampTab(d.key)}>{d.label}</button>
-                    ))}
-                  </div>
-                </div>
-                {DIMENSIONS.some((d) => filters[d.key]) && (
-                  <div className="drill-crumbs">
-                    <span className="crumb-label">Gefiltert auf:</span>
-                    {DIMENSIONS.filter((d) => filters[d.key]).map((d) => (
-                      <span key={d.key} className="crumb">
-                        <span className="crumb-dim">{d.label}:</span> {filters[d.key].length > 38 ? filters[d.key].slice(0, 35) + '…' : filters[d.key]}
-                        <button className="crumb-x" title="Filter entfernen" onClick={() => setFilters((f) => ({ ...f, [d.key]: '' }))}>×</button>
-                      </span>
-                    ))}
-                    <button className="crumb-clear" onClick={() => setFilters((f) => ({ ...f, campaign: '', adset: '', creative: '', placement: '' }))}>alle entfernen</button>
-                  </div>
-                )}
-                <CampaignCards
-                  rows={campRows}
-                  dimKey={campTab}
-                  canDrill={campTab !== 'placement'}
-                  onDrill={campDrill}
-                  sort={campSort}
-                  setSort={setCampSort}
-                />
-              </section>
+              hasFb && fb.hierarchy ? (
+                <section className="panel">
+                  <div className="panel-head"><div><h2>Kampagnen-Aufschlüsselung</h2><span className="panel-sub">Kampagne → Anzeigengruppe → Creative · Facebook-Kennzahlen + Lead-Attribution</span></div></div>
+                  <CampaignCards hierarchy={fb.hierarchy} />
+                </section>
+              ) : (
+                <section className="panel">
+                  <div className="panel-head"><div><h2>Kampagnen-Aufschlüsselung</h2></div></div>
+                  <div className="info-note">Keine Facebook-Daten verfügbar. Prüfe die Meta-Anbindung (META_ACCESS_TOKEN, META_AD_ACCOUNT_ID).</div>
+                </section>
+              )
             )}
 
             {view === 'leads' && (

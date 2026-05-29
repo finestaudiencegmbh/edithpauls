@@ -16,6 +16,8 @@
  *   - leads/tickets (aus dem Sheet, nach Lead-Datum)
  */
 
+import { loadCampaignConfig, isLeadCampaign } from './campaigns.js';
+
 const normKey = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
 
 function emptyMetrics() {
@@ -53,6 +55,7 @@ const round2 = (n) => (n == null ? null : Math.round(n * 100) / 100);
  */
 export function combineMetaWithLeads(meta, leads) {
   const { entities = [], daily = [], campaignStatus = {}, adsetStatus = {} } = meta || {};
+  const campCfg = loadCampaignConfig();
 
   // Lead-/Ticket-Zähler je Dimension (über normalisierte UTM-Namen)
   const leadBy = { campaign: new Map(), adset: new Map(), creative: new Map() };
@@ -74,12 +77,15 @@ export function combineMetaWithLeads(meta, leads) {
   for (const e of entities) {
     const cKey = normKey(e.campaign);
     if (!campaigns.has(cKey)) {
+      const objective = campaignStatus[e.campaign]?.objective ?? null;
       campaigns.set(cKey, {
         id: e.campaignId,
         name: e.campaign,
         level: 'campaign',
         active: campaignStatus[e.campaign]?.active ?? null,
         status: campaignStatus[e.campaign]?.status ?? null,
+        objective,
+        leadCampaign: isLeadCampaign(e.campaign, objective, campCfg),
         _m: emptyMetrics(),
         adsets: new Map(),
       });
@@ -141,11 +147,30 @@ export function combineMetaWithLeads(meta, leads) {
     }
     result.push({
       id: c.id, name: c.name, level: 'campaign', active: c.active, status: c.status,
+      objective: c.objective, leadCampaign: c.leadCampaign,
       ...derive(c._m),
       adsets: adsets.sort((x, y) => y.spend - x.spend),
     });
   }
   result.sort((x, y) => y.spend - x.spend);
+
+  // Summen: gesamt vs. nur Lead-Kampagnen (für CPL/€-Ticket ohne Traffic-Spend)
+  const totals = { spend: 0, leadSpend: 0, impressions: 0, outboundClicks: 0, leads: 0, tickets: 0, nonLeadSpend: 0 };
+  for (const c of result) {
+    totals.spend += c.spend || 0;
+    totals.impressions += c.impressions || 0;
+    totals.outboundClicks += c.outboundClicks || 0;
+    totals.leads += c.leads || 0;
+    totals.tickets += c.tickets || 0;
+    if (c.leadCampaign) totals.leadSpend += c.spend || 0;
+    else totals.nonLeadSpend += c.spend || 0;
+  }
+  totals.spend = round2(totals.spend);
+  totals.leadSpend = round2(totals.leadSpend);
+  totals.nonLeadSpend = round2(totals.nonLeadSpend);
+
+  // Welche Kampagnen sind Nicht-Lead (Traffic etc.)? -> für Tagesreihen-Abzug
+  const nonLeadCampaignKeys = new Set(result.filter((c) => !c.leadCampaign).map((c) => normKey(c.name)));
 
   // Tagesreihen
   const spendByDay = daily.map((d) => ({ date: d.date, spend: round2(d.spend), impressions: d.impressions, clicks: d.clicks }));
@@ -163,6 +188,8 @@ export function combineMetaWithLeads(meta, leads) {
 
   return {
     hierarchy: result,
+    totals,
+    nonLeadCampaigns: result.filter((c) => !c.leadCampaign).map((c) => ({ name: c.name, objective: c.objective, spend: c.spend })),
     daily: { spend: spendByDay, leads: leadsByDay },
   };
 }

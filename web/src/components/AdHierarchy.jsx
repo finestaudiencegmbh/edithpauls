@@ -3,8 +3,11 @@ import { fmtEur, fmtInt, fmtPct } from '../lib.js';
 
 const fmtEur2 = (n) => (n == null ? '–' : new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(n));
 
-/** Eine Kennzahlen-Zeile (für alle drei Ebenen identisch). */
-function MetricCells({ n }) {
+/** Eine Kennzahlen-Zeile (für alle drei Ebenen identisch).
+ *  Bei Nicht-Lead-Kampagnen (Traffic) werden lead-bezogene Kennzahlen
+ *  ausgeblendet, weil sie dort keine sinnvolle Aussage haben. */
+function MetricCells({ n, leadHidden }) {
+  const dash = <span className="muted">–</span>;
   return (
     <>
       <td className="num">{fmtEur(n.spend)}</td>
@@ -13,11 +16,11 @@ function MetricCells({ n }) {
       <td className="num">{fmtInt(n.outboundClicks)}</td>
       <td className="num">{fmtPct(n.outboundCtr)}</td>
       <td className="num">{fmtEur2(n.cpoc)}</td>
-      <td className="num">{fmtInt(n.leads)}</td>
-      <td className="num">{fmtEur(n.cpl)}</td>
-      <td className="num">{fmtInt(n.tickets)}</td>
-      <td className="num">{fmtEur(n.cpt)}</td>
-      <td className="num lp">{fmtPct(n.lpConversion)}</td>
+      <td className="num">{leadHidden ? dash : fmtInt(n.leads)}</td>
+      <td className="num">{leadHidden ? dash : fmtEur(n.cpl)}</td>
+      <td className="num">{leadHidden ? dash : fmtInt(n.tickets)}</td>
+      <td className="num">{leadHidden ? dash : fmtEur(n.cpt)}</td>
+      <td className="num lp">{leadHidden ? dash : fmtPct(n.lpConversion)}</td>
     </>
   );
 }
@@ -69,6 +72,7 @@ export default function AdHierarchy({ hierarchy }) {
           <tbody>
             {campaigns.map((c) => {
               const cOpen = open.has(c.id);
+              const leadHidden = c.leadCampaign === false;
               const adsets = c.adsets.filter((a) => !onlyActive || a.active !== false);
               return (
                 <React.Fragment key={c.id}>
@@ -77,8 +81,9 @@ export default function AdHierarchy({ hierarchy }) {
                       <span className={`caret ${cOpen ? 'open' : ''}`}>▶</span>
                       <StatusDot active={c.active} />
                       <span className="hier-name lvl-campaign" title={c.name}>{c.name}</span>
+                      {c.leadCampaign === false && <span className="traffic-tag" title={`Nicht-Lead-Kampagne${c.objective ? ` (${c.objective})` : ''} – zählt nicht in CPL/€-Ticket`}>Traffic</span>}
                     </td>
-                    <MetricCells n={c} />
+                    <MetricCells n={c} leadHidden={leadHidden} />
                   </tr>
                   {cOpen && adsets.map((a) => {
                     const aId = `${c.id}/${a.id}`;
@@ -92,14 +97,14 @@ export default function AdHierarchy({ hierarchy }) {
                             <StatusDot active={a.active} />
                             <span className="hier-name lvl-adset" title={a.name}>{a.name}</span>
                           </td>
-                          <MetricCells n={a} />
+                          <MetricCells n={a} leadHidden={leadHidden} />
                         </tr>
                         {aOpen && ads.map((ad) => (
                           <tr key={ad.id} className="row-ad">
                             <td className="left indent-2">
                               <span className="hier-name lvl-ad" title={ad.name}>{ad.name}</span>
                             </td>
-                            <MetricCells n={ad} />
+                            <MetricCells n={ad} leadHidden={leadHidden} />
                           </tr>
                         ))}
                         {aOpen && ads.length === 0 && (

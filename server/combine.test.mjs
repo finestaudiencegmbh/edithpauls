@@ -15,9 +15,14 @@ const meta = {
     { date: '2026-05-27', spend: 80, impressions: 8000, clicks: 120 },
     { date: '2026-05-28', spend: 70, impressions: 6000, clicks: 140 },
   ],
-  campaignStatus: { 'Kampagne A': { status: 'ACTIVE', active: true } },
+  campaignStatus: { 'Kampagne A': { status: 'ACTIVE', active: true, objective: 'OUTCOME_LEADS' } },
   adsetStatus: { 'AG 1': { status: 'PAUSED', active: false } },
 };
+
+// Zweite Kampagne: Traffic-Ziel -> darf NICHT in CPL einfließen
+meta.entities.push({ campaignId: 'c2', campaign: 'Traffic B', adsetId: 'a2', adset: 'AG T', adId: 'adt', creative: 'Banner', spend: 500, impressions: 100000, clicks: 3000, cpm: 5, uniqueOutboundClicks: 2000, uniqueOutboundClicksCtr: 0, costPerUniqueOutboundClick: 0 });
+meta.campaignStatus['Traffic B'] = { status: 'ACTIVE', active: true, objective: 'OUTCOME_TRAFFIC' };
+meta.adsetStatus['AG T'] = { status: 'ACTIVE', active: true };
 
 // Leads aus dem Sheet (paid), attribuiert über die Namen
 const leads = [
@@ -27,10 +32,18 @@ const leads = [
   { sourceType: 'organic', campaign: '(organisch)', adset: 'x', creative: 'y', wonAt: '2026-05-28T09:00:00Z', hasTicket: false },
 ];
 
-const { hierarchy, daily } = combineMetaWithLeads(meta, leads);
+const { hierarchy, daily, totals } = combineMetaWithLeads(meta, leads);
 
-assert.equal(hierarchy.length, 1, 'eine Kampagne');
-const c = hierarchy[0];
+assert.equal(hierarchy.length, 2, 'zwei Kampagnen');
+const c = hierarchy.find((x) => x.name === 'Kampagne A');
+const t = hierarchy.find((x) => x.name === 'Traffic B');
+assert.equal(c.leadCampaign, true, 'Lead-Kampagne erkannt');
+assert.equal(t.leadCampaign, false, 'Traffic-Kampagne erkannt (objective OUTCOME_TRAFFIC)');
+
+// Totals: Gesamt-Spend enthält Traffic, leadSpend nicht
+assert.equal(totals.spend, 650, 'Gesamt-Spend 150 + 500');
+assert.equal(totals.leadSpend, 150, 'Lead-Spend nur Kampagne A');
+assert.equal(totals.nonLeadSpend, 500, 'Traffic-Spend separat');
 assert.equal(c.name, 'Kampagne A');
 assert.equal(c.active, true, 'Kampagnen-Status aktiv');
 assert.equal(c.spend, 150, 'Kampagnen-Spend = Summe der Ads');

@@ -156,17 +156,23 @@ async function fetchDaily(c, range) {
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
-/** effective_status je Kampagne und Anzeigengruppe. */
+/** effective_status + objective (Ziel) je Kampagne, effective_status je Anzeigengruppe. */
 async function fetchStatus(c) {
   const camps = await graphGet(
-    `${GRAPH}/${c.version}/${c.account}/campaigns?fields=name,effective_status&limit=500&access_token=${c.token}`
+    `${GRAPH}/${c.version}/${c.account}/campaigns?fields=name,effective_status,objective&limit=500&access_token=${c.token}`
   );
   const adsets = await graphGet(
     `${GRAPH}/${c.version}/${c.account}/adsets?fields=name,effective_status,campaign_id&limit=500&access_token=${c.token}`
   );
   const isActive = (s) => s === 'ACTIVE';
   const campaignStatus = {};
-  for (const x of camps) campaignStatus[String(x.name).trim()] = { status: x.effective_status, active: isActive(x.effective_status) };
+  for (const x of camps) {
+    campaignStatus[String(x.name).trim()] = {
+      status: x.effective_status,
+      active: isActive(x.effective_status),
+      objective: x.objective || null,
+    };
+  }
   const adsetStatus = {};
   for (const x of adsets) adsetStatus[String(x.name).trim()] = { status: x.effective_status, active: isActive(x.effective_status) };
   return { campaignStatus, adsetStatus };

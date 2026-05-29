@@ -15,10 +15,10 @@ function Card({ label, value, sub, accent }) {
 export default function Kpis({ kpis, dist, tiers }) {
   return (
     <div className="kpi-grid">
-      <Card label="Adspend (zugeordnet)" value={fmtEur(kpis.spend)} sub={`${fmtInt(kpis.paid)} bezahlte Leads`} accent="#d0bb5a" />
+      <Card label="Adspend (gesamt)" value={fmtEur(kpis.spend)} sub={kpis.nonLeadSpend > 0 ? `davon ${fmtEur(kpis.nonLeadSpend)} Traffic` : `${fmtInt(kpis.paid)} bezahlte Leads`} accent="#d0bb5a" />
       {kpis.impressions != null && <Card label="Impressionen" value={fmtInt(kpis.impressions)} sub="aus Facebook" accent="#5ec8d8" />}
       <Card label="Leads gesamt" value={fmtInt(kpis.total)} sub={`${fmtInt(kpis.organic)} organisch`} />
-      <Card label="CPL" value={fmtEur(kpis.cpl)} sub="Kosten pro Lead" />
+      <Card label="CPL" value={fmtEur(kpis.cpl)} sub={kpis.nonLeadSpend > 0 ? 'nur Lead-Kampagnen' : 'Kosten pro Lead'} />
       <Card label="VIP-Tickets" value={fmtInt(kpis.tickets)} sub={`Rate ${fmtPct(kpis.ticketRate)}`} accent="#5ec8d8" />
       <Card label="Kosten / Ticket" value={fmtEur(kpis.cpt)} />
       <Card label="Ø Lead-Qualität" value={fmtScore(kpis.avgQuality)} sub="von 100" accent="#6fcf97" />

@@ -147,6 +147,11 @@ export function computeKpis(leads, overviewByAdset, fb) {
     const adsets = new Set(paid.map((l) => l.adset));
     spend = spendForAdsets([...adsets], overviewByAdset);
   }
+  // CPL & Kosten/Ticket nur auf Lead-Kampagnen-Spend beziehen (Traffic-/
+  // Reichweiten-Kampagnen verfälschen sonst die Kosten). Fällt auf den
+  // Gesamt-Spend zurück, falls keine Aufteilung vorliegt.
+  const leadSpend = fb?.totals?.leadSpend ?? spend;
+  const nonLeadSpend = fb?.totals?.nonLeadSpend ?? 0;
   return {
     total,
     paid: paid.length,
@@ -157,9 +162,11 @@ export function computeKpis(leads, overviewByAdset, fb) {
     qualified,
     qualifiedRate: ticketLeads.length ? qualified / ticketLeads.length : null,
     spend,
+    leadSpend,
+    nonLeadSpend,
     impressions,
-    cpl: spend != null && total ? spend / total : null,
-    cpt: spend != null && ticketLeads.length ? spend / ticketLeads.length : null,
+    cpl: leadSpend != null && total ? leadSpend / total : null,
+    cpt: leadSpend != null && ticketLeads.length ? leadSpend / ticketLeads.length : null,
   };
 }
 

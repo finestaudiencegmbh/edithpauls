@@ -60,7 +60,15 @@ export function buildDataset({ leads, tickets, overview }, cfg) {
     r.lastName ||= l.lastName;
     r.wonAt = r.wonAt || l.wonAt;
     if (collapse(l.utm.source)) r.utm = { ...l.utm };
-    if (l.ticketAt) r.ticketAt = l.ticketAt;
+    // "VIP-Ticket geholt am" in der Leads-Zeile ist das zuverlässigste
+    // Ticket-Signal und liegt auf derselben Zeile wie das Creative.
+    // Dadurch werden Tickets korrekt auf Kampagne/Anzeigengruppe/Creative/
+    // Placement zugeordnet – unabhängig vom (fehleranfälligen) E-Mail-Join
+    // zum Antworten-Tab, der nur noch die Qualitäts-Antworten beisteuert.
+    if (l.ticketAt) {
+      r.ticketAt = l.ticketAt;
+      r.hasTicket = true;
+    }
   }
 
   // 2) Tickets dranjoinen (und ggf. neue Personen anlegen, die nur im

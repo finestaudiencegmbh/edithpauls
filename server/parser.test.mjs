@@ -27,6 +27,9 @@ const leadsSheet = {
     ['161', '', '', '', '', '', '', '', '47', '', '', ''], // Zähl-/Summenzeile -> muss ignoriert werden
     ['2026-05-26 20:42:50 +0000', 'Rebecca', 'Schießl', 'schiessl.rebecca@gmail.com', 'J&P | LP 1 | Broad | DACH | W | 30-55', 'LP 1 - Static 16', 'J&P | MMV 15.06.-18.06. | ABO | 260526', 'Facebook_Mobile_Feed', '2026-05-26 20:47:35 +0000', '', '', ''],
     ['2026-05-26 21:00:00 +0000', 'Max', 'Organik', 'max@example.com', 'instagram', 'bio', 'moneymaker-workshop-2026', 'workshop-anmeldung', '', '', '', ''],
+    // Lead mit VIP-Ticket, aber OHNE passende Antworten-Zeile:
+    // Ticket muss trotzdem dem Creative zugeordnet werden, Qualität bleibt offen.
+    ['2026-05-27 09:00:00 +0000', 'Lisa', 'Nolead', 'lisa@example.com', 'J&P | LP 2 | Broad | DACH | W | 30-55', 'LP 2 - Static 19', 'J&P | MMV 15.06.-18.06. | ABO | 260526', 'Instagram_Feed', '2026-05-27 09:05:00 +0000', '', '', ''],
   ],
 };
 
@@ -47,7 +50,7 @@ const parsed = parseSheets([overviewSheet, leadsSheet, ticketsSheet, ticketsShee
 assert.equal(parsed.overview.length, 2, 'beide Übersichts-Tabellen erkannt');
 assert.equal(parsed.overview[0].adset, 'J&P | LP 1 | Broad | DACH | W | 30-55', 'Pipe-Wert intakt');
 assert.equal(parsed.overview[0].adspend, 1030.66, 'deutsches Zahlenformat geparst');
-assert.equal(parsed.leads.length, 2, 'Summenzeile ignoriert, 2 echte Leads');
+assert.equal(parsed.leads.length, 3, 'Summenzeile ignoriert, 3 echte Leads');
 assert.equal(parsed.tickets.length, 1, 'Ticket-Duplikat entfernt');
 
 const ds = buildDataset(parsed, cfg);
@@ -62,6 +65,17 @@ assert.ok(rebecca.quality && rebecca.quality.score > 0, 'Qualität berechnet');
 const max = ds.leads.find((l) => l.email === 'max@example.com');
 assert.equal(max.sourceType, 'organic', 'einzelnes Token = organisch');
 assert.equal(max.hasTicket, false);
+
+// Lead mit "VIP-Ticket geholt am", aber ohne Antworten-Zeile
+const lisa = ds.leads.find((l) => l.email === 'lisa@example.com');
+assert.equal(lisa.hasTicket, true, 'Ticket über "VIP-Ticket geholt am" erkannt');
+assert.equal(lisa.creative, 'LP 2 - Static 19', 'Creative aus der Lead-Zeile');
+assert.equal(lisa.quality, null, 'ohne Antworten keine Qualität');
+
+// Ticket-Zuordnung auf Creative-Ebene (Kernfall des gemeldeten Bugs)
+const byCreative = (key) => ds.leads.filter((l) => l.creative === key && l.hasTicket).length;
+assert.equal(byCreative('LP 2 - Static 19'), 1, 'Ticket dem Creative zugeordnet');
+assert.equal(ds.counts.tickets, 2, 'beide Ticket-Holder gezählt');
 
 // Spend-Zuordnung über Anzeigengruppe
 const spendKey = 'j&p | lp 1 | broad | dach | w | 30-55';

@@ -1,8 +1,10 @@
 export async function fetchData({ refresh = false } = {}) {
   const res = await fetch(`/api/data${refresh ? '?refresh=1' : ''}`);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    const text = await res.text().catch(() => '');
+    let msg = `HTTP ${res.status}`;
+    try { msg = JSON.parse(text).error || msg; } catch (_) { if (text) msg = text.slice(0, 120); }
+    throw new Error(msg);
   }
   return res.json();
 }

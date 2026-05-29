@@ -6,21 +6,25 @@ const fmtEur2 = (n) => (n == null ? '–' : new Intl.NumberFormat('de-DE', { sty
 /** Eine Kennzahlen-Zeile (für alle drei Ebenen identisch).
  *  Bei Nicht-Lead-Kampagnen (Traffic) werden lead-bezogene Kennzahlen
  *  ausgeblendet, weil sie dort keine sinnvolle Aussage haben. */
+const fmtScore = (n) => (n == null ? '–' : String(Math.round(n)));
+
 function MetricCells({ n, leadHidden }) {
   const dash = <span className="muted">–</span>;
   return (
     <>
       <td className="num">{fmtEur(n.spend)}</td>
-      <td className="num">{fmtInt(n.impressions)}</td>
+      <td className="num">{leadHidden ? dash : fmtInt(n.leads)}</td>
+      <td className="num">{leadHidden ? dash : fmtInt(n.tickets)}</td>
+      <td className="num">{leadHidden ? dash : fmtEur(n.cpl)}</td>
+      <td className="num">{leadHidden ? dash : fmtEur(n.cpt)}</td>
+      <td className="num">{leadHidden ? dash : fmtPct(n.qualifiedRate)}</td>
+      <td className="num">{leadHidden ? dash : fmtScore(n.avgQuality)}</td>
+      <td className="num lp">{leadHidden ? dash : fmtPct(n.cvrStart)}</td>
+      <td className="num">{leadHidden ? dash : fmtPct(n.cvrTicket)}</td>
       <td className="num">{fmtEur2(n.cpm)}</td>
-      <td className="num">{fmtInt(n.outboundClicks)}</td>
       <td className="num">{fmtPct(n.outboundCtr)}</td>
       <td className="num">{fmtEur2(n.cpoc)}</td>
-      <td className="num">{leadHidden ? dash : fmtInt(n.leads)}</td>
-      <td className="num">{leadHidden ? dash : fmtEur(n.cpl)}</td>
-      <td className="num">{leadHidden ? dash : fmtInt(n.tickets)}</td>
-      <td className="num">{leadHidden ? dash : fmtEur(n.cpt)}</td>
-      <td className="num lp">{leadHidden ? dash : fmtPct(n.lpConversion)}</td>
+      <td className="num">{fmtInt(n.outboundClicks)}</td>
     </>
   );
 }
@@ -74,17 +78,19 @@ export default function AdHierarchy({ hierarchy }) {
           <thead>
             <tr>
               <th className="left">Kampagne / Anzeigengruppe / Creative</th>
-              <th className="num">Spend</th>
-              <th className="num">Impr.</th>
-              <th className="num">CPM</th>
-              <th className="num" title="Individuell ausgehende Klicks">Ausg. Klicks</th>
-              <th className="num" title="Individuell ausgehende CTR">Ausg. CTR</th>
-              <th className="num" title="Individueller ausgehender Klickpreis">Ausg. CPC</th>
+              <th className="num">Adspend</th>
               <th className="num">Leads</th>
-              <th className="num">CPL</th>
               <th className="num">Tickets</th>
+              <th className="num">€/Lead</th>
               <th className="num">€/Ticket</th>
-              <th className="num" title="Leads ÷ individuell ausgehende Klicks">LP-CVR</th>
+              <th className="num">Quali-Rate</th>
+              <th className="num">Ø Quali</th>
+              <th className="num" title="Leads ÷ individuell ausgehende Klicks (Klick → Lead)">CVR Start</th>
+              <th className="num" title="Tickets ÷ Leads (Lead → Ticket)">CVR Ticket</th>
+              <th className="num">CPM</th>
+              <th className="num" title="Individuell ausgehende CTR">CTR (ausg.)</th>
+              <th className="num" title="Individueller ausgehender Klickpreis">CPC (ausg.)</th>
+              <th className="num" title="Individuell ausgehende Klicks">Ausg. Klicks</th>
             </tr>
           </thead>
           <tbody>
@@ -126,7 +132,7 @@ export default function AdHierarchy({ hierarchy }) {
                           </tr>
                         ))}
                         {aOpen && ads.length === 0 && (
-                          <tr className="row-ad"><td className="left indent-2 muted">keine Ads</td><td colSpan={11} /></tr>
+                          <tr className="row-ad"><td className="left indent-2 muted">keine Ads</td><td colSpan={13} /></tr>
                         )}
                       </React.Fragment>
                     );
@@ -135,7 +141,7 @@ export default function AdHierarchy({ hierarchy }) {
               );
             })}
             {campaigns.length === 0 && (
-              <tr><td colSpan={12} className="empty">Keine {onlyActive ? 'aktiven ' : ''}Kampagnen gefunden.</td></tr>
+              <tr><td colSpan={14} className="empty">Keine {onlyActive ? 'aktiven ' : ''}Kampagnen gefunden.</td></tr>
             )}
           </tbody>
         </table>

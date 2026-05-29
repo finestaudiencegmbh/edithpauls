@@ -21,7 +21,7 @@ import { loadCampaignConfig, isLeadCampaign } from './campaigns.js';
 const normKey = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
 
 function emptyMetrics() {
-  return { spend: 0, impressions: 0, clicks: 0, uoc: 0, leads: 0, tickets: 0 };
+  return { spend: 0, impressions: 0, clicks: 0, uoc: 0, leads: 0, tickets: 0, scoreSum: 0, scored: 0, qualified: 0 };
 }
 
 /** Leitet die abgeleiteten Kennzahlen aus den Rohsummen ab. */
@@ -31,7 +31,7 @@ function derive(m) {
   const cpoc = m.uoc ? m.spend / m.uoc : null; // individueller ausgehender Klickpreis
   const cpl = m.leads ? m.spend / m.leads : null;
   const cpt = m.tickets ? m.spend / m.tickets : null;
-  const lpConversion = m.uoc ? m.leads / m.uoc : null; // Leads ÷ individuell ausgehende Klicks
+  const lpConversion = m.uoc ? m.leads / m.uoc : null; // = CVR Start (Leads ÷ individuell ausg. Klicks)
   return {
     spend: round2(m.spend),
     impressions: m.impressions,
@@ -44,6 +44,10 @@ function derive(m) {
     cpl: round2(cpl),
     cpt: round2(cpt),
     lpConversion,
+    cvrStart: lpConversion,
+    cvrTicket: m.leads ? m.tickets / m.leads : null, // Lead -> Ticket
+    avgQuality: m.scored ? Math.round(m.scoreSum / m.scored) : null,
+    qualifiedRate: m.tickets ? m.qualified / m.tickets : null,
   };
 }
 
@@ -57,20 +61,25 @@ export function combineMetaWithLeads(meta, leads) {
   const { entities = [], daily = [], campaignStatus = {}, adsetStatus = {} } = meta || {};
   const campCfg = loadCampaignConfig();
 
-  // Lead-/Ticket-Zähler je Dimension (über normalisierte UTM-Namen)
+  // Lead-/Ticket-/Qualitäts-Zähler je Dimension (über normalisierte UTM-Namen)
   const leadBy = { campaign: new Map(), adset: new Map(), creative: new Map() };
   for (const l of leads || []) {
     if (l.sourceType !== 'paid') continue;
     for (const dim of ['campaign', 'adset', 'creative']) {
       const k = normKey(l[dim]);
       if (!k) continue;
-      if (!leadBy[dim].has(k)) leadBy[dim].set(k, { leads: 0, tickets: 0 });
+      if (!leadBy[dim].has(k)) leadBy[dim].set(k, { leads: 0, tickets: 0, scoreSum: 0, scored: 0, qualified: 0 });
       const e = leadBy[dim].get(k);
       e.leads += 1;
       if (l.hasTicket) e.tickets += 1;
+      if (l.quality) {
+        e.scoreSum += l.quality.score;
+        e.scored += 1;
+        if (['A', 'B'].includes(l.quality.tier)) e.qualified += 1;
+      }
     }
   }
-  const lookupLeads = (dim, name) => leadBy[dim].get(normKey(name)) || { leads: 0, tickets: 0 };
+  const lookupLeads = (dim, name) => leadBy[dim].get(normKey(name)) || { leads: 0, tickets: 0, scoreSum: 0, scored: 0, qualified: 0 };
 
   // Hierarchie aufbauen: Kampagne -> Anzeigengruppe -> Ad
   const campaigns = new Map();
@@ -105,7 +114,7 @@ export function combineMetaWithLeads(meta, leads) {
     }
     const a = c.adsets.get(aKey);
 
-    // Ad-Ebene: FB-Kennzahlen direkt, Leads/Tickets über Creative-Namen
+    // Ad-Ebene: FB-Kennzahlen direkt, Leads/Tickets/Qualität über Creative-Namen
     const adLeads = lookupLeads('creative', e.creative);
     const adM = {
       spend: e.spend,
@@ -114,6 +123,9 @@ export function combineMetaWithLeads(meta, leads) {
       uoc: e.uniqueOutboundClicks,
       leads: adLeads.leads,
       tickets: adLeads.tickets,
+      scoreSum: adLeads.scoreSum,
+      scored: adLeads.scored,
+      qualified: adLeads.qualified,
     };
     a.ads.push({ id: e.adId, name: e.creative, level: 'ad', ...derive(adM) });
 
@@ -129,16 +141,19 @@ export function combineMetaWithLeads(meta, leads) {
   // Leads/Tickets je Ebene aus der Sheet-Attribution (nicht aus Ad-Summe,
   // damit auch Leads ohne exakten Creative-Match auf Anzeigengruppen-/
   // Kampagnenebene korrekt erscheinen)
+  const applyLeadStats = (m, src) => {
+    m.leads = src.leads;
+    m.tickets = src.tickets;
+    m.scoreSum = src.scoreSum;
+    m.scored = src.scored;
+    m.qualified = src.qualified;
+  };
   const result = [];
   for (const c of campaigns.values()) {
-    const cl = lookupLeads('campaign', c.name);
-    c._m.leads = cl.leads;
-    c._m.tickets = cl.tickets;
+    applyLeadStats(c._m, lookupLeads('campaign', c.name));
     const adsets = [];
     for (const a of c.adsets.values()) {
-      const al = lookupLeads('adset', a.name);
-      a._m.leads = al.leads;
-      a._m.tickets = al.tickets;
+      applyLeadStats(a._m, lookupLeads('adset', a.name));
       adsets.push({
         id: a.id, name: a.name, level: 'adset', active: a.active, status: a.status,
         ...derive(a._m),

@@ -41,10 +41,6 @@ export default function Filters({ leads, filters, setFilters, tiers, onReset }) 
             <option value="organic">Organisch</option>
           </select>
         </label>
-        <label className="filter checkbox">
-          <input type="checkbox" checked={filters.onlyTickets} onChange={(e) => set({ onlyTickets: e.target.checked })} />
-          <span>Nur VIP-Tickets</span>
-        </label>
         <button className={`more-btn ${showAdvanced ? 'open' : ''}`} onClick={() => setShowAdvanced((v) => !v)}>
           {showAdvanced ? 'Weniger Filter' : 'Mehr Filter'}
           <svg className="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

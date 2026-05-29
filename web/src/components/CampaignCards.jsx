@@ -106,25 +106,38 @@ export default function CampaignCards({ hierarchy }) {
                           <span className={`caret ${aOpen ? 'open' : ''}`}>▶</span>
                           <StatusDot active={a.active} />
                           <span className="cc-subname" title={a.name}>{a.name}</span>
-                          <span className="cc-sub-meta">{fmtEur(a.spend)} · {leadHidden ? '–' : `${fmtInt(a.leads)} Leads`} · {leadHidden ? '–' : `CPL ${fmtEur(a.cpl)}`} · {leadHidden ? '–' : `Quali ${fmtPct(a.qualifiedRate)}`}</span>
+                          <span className="cc-sub-meta">
+                            <span className="cc-sm-item"><b>{fmtEur(a.spend)}</b> Adspend</span>
+                            <span className="cc-sm-item"><b>{leadHidden ? '–' : fmtInt(a.leads)}</b> Leads</span>
+                            <span className="cc-sm-item"><b>{leadHidden ? '–' : fmtEur(a.cpl)}</b> CPL</span>
+                            <span className="cc-sm-item"><b>{leadHidden ? '–' : fmtPct(a.qualifiedRate)}</b> Quali</span>
+                          </span>
                         </button>
                         {aOpen && (
                           <div className="cc-sub-body">
                             <Metrics n={a} leadHidden={leadHidden} />
                             {ads.length > 0 && (
                               <div className="cc-ads">
+                                <div className="cc-ad cc-ad-headrow">
+                                  <span className="cc-ad-name">Werbeanzeige</span>
+                                  <span>Adspend</span>
+                                  <span>Leads</span>
+                                  <span>CPL</span>
+                                  <span>Tickets</span>
+                                  <span>Quali-Rate</span>
+                                  <span>CVR Start</span>
+                                  <span>CTR ausg.</span>
+                                </div>
                                 {ads.map((ad) => (
                                   <div key={ad.id} className="cc-ad">
-                                    <div className="cc-ad-name" title={ad.name}>{ad.name}</div>
-                                    <div className="cc-ad-metrics">
-                                      <span>{fmtEur(ad.spend)}</span>
-                                      <span>{leadHidden ? '–' : `${fmtInt(ad.leads)} Leads`}</span>
-                                      <span>{leadHidden ? '–' : `CPL ${fmtEur(ad.cpl)}`}</span>
-                                      <span>{leadHidden ? '–' : `${fmtInt(ad.tickets)} Tickets`}</span>
-                                      <span>{leadHidden ? '–' : `Quali ${fmtPct(ad.qualifiedRate)}`}</span>
-                                      <span>{leadHidden ? '–' : `CVR ${fmtPct(ad.cvrStart)}`}</span>
-                                      <span>CTR {fmtPct(ad.outboundCtr)}</span>
-                                    </div>
+                                    <span className="cc-ad-name" title={ad.name}>{ad.name}</span>
+                                    <span>{fmtEur(ad.spend)}</span>
+                                    <span>{leadHidden ? '–' : fmtInt(ad.leads)}</span>
+                                    <span>{leadHidden ? '–' : fmtEur(ad.cpl)}</span>
+                                    <span>{leadHidden ? '–' : fmtInt(ad.tickets)}</span>
+                                    <span>{leadHidden ? '–' : fmtPct(ad.qualifiedRate)}</span>
+                                    <span>{leadHidden ? '–' : fmtPct(ad.cvrStart)}</span>
+                                    <span>{fmtPct(ad.outboundCtr)}</span>
                                   </div>
                                 ))}
                               </div>

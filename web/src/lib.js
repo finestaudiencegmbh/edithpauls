@@ -52,8 +52,14 @@ export function applyFilters(leads, f) {
       const ok = (tier && f.tiers.includes(tier)) || (!tier && f.tiers.includes('none'));
       if (!ok) return false;
     }
-    if (f.from && l.wonAt && l.wonAt.slice(0, 10) < f.from) return false;
-    if (f.to && l.wonAt && l.wonAt.slice(0, 10) > f.to) return false;
+    // Datumsbereich: konsistent mit dem Server. Bei gesetztem Zeitraum werden
+    // Leads ohne gültiges Datum ausgeschlossen.
+    if (f.from || f.to) {
+      const day = (l.wonAt || '').slice(0, 10);
+      if (!day) return false;
+      if (f.from && day < f.from) return false;
+      if (f.to && day > f.to) return false;
+    }
     if (f.search) {
       const hay = `${l.name} ${l.email} ${l.creative} ${l.adset}`.toLowerCase();
       if (!hay.includes(f.search.toLowerCase())) return false;

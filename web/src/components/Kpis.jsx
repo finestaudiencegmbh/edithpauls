@@ -1,5 +1,5 @@
 import React from 'react';
-import { fmtEur, fmtInt, fmtPct, fmtScore } from '../lib.js';
+import { fmtEur, fmtInt, fmtPct } from '../lib.js';
 
 function Card({ label, value, sub, accent }) {
   return (
@@ -45,8 +45,8 @@ export default function Kpis({ kpis, dist, tiers }) {
       <section className="kpi-section">
         <div className="kpi-section-head"><span className="kpi-dot" style={{ background: GREEN }} />Lead-Qualität</div>
         <div className="kpi-grid">
-          <Card label="Qualifizierte Leads" value={fmtPct(kpis.qualifiedRate)} sub={`${fmtInt(kpis.qualified)} von ${fmtInt(kpis.tickets)} Tickets · Tier A/B`} accent={GREEN} />
-          <Card label="Ø Lead-Qualität" value={fmtScore(kpis.avgQuality)} sub="von 100" accent={GREEN} />
+          <Card label="Qualifizierte Leads" value={fmtPct(kpis.qualifiedRate)} sub="Tier A/B der VIP-Tickets" accent={GREEN} />
+          <Card label="Qualifizierte Leads" value={fmtInt(kpis.qualified)} sub={`von ${fmtInt(kpis.tickets)} VIP-Tickets`} accent={GREEN} />
           <div className="kpi-card kpi-dist">
             <div className="kpi-label">Qualitäts-Verteilung (Tickets)</div>
             <div className="dist-bars">

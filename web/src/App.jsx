@@ -65,7 +65,14 @@ export default function App() {
     [data, filtered, tab, fb]
   );
 
-  const selectDim = (key) => setFilters((f) => ({ ...f, [tab]: f[tab] === key ? '' : key }));
+  // Drill-Down: Klick auf eine Zeile filtert nach diesem Wert UND springt auf
+  // die nächst-tiefere Ebene (Kampagne -> Anzeigengruppe -> Creative -> Placement).
+  const DRILL_ORDER = ['campaign', 'adset', 'creative', 'placement'];
+  const selectDim = (key) => {
+    setFilters((f) => ({ ...f, [tab]: key }));
+    const idx = DRILL_ORDER.indexOf(tab);
+    if (idx >= 0 && idx < DRILL_ORDER.length - 1) setTab(DRILL_ORDER[idx + 1]);
+  };
 
   if (loading && !data) return <div className="loader">Lade Daten…</div>;
 
@@ -164,8 +171,20 @@ export default function App() {
                         <button key={d.key} className={`tab ${tab === d.key ? 'active' : ''}`} onClick={() => setTab(d.key)}>{d.label}</button>
                       ))}
                     </div>
-                    <span className="tabs-hint">Zeile anklicken = danach filtern</span>
+                    <span className="tabs-hint">Zeile anklicken = eine Ebene tiefer</span>
                   </div>
+                  {DIMENSIONS.some((d) => filters[d.key]) && (
+                    <div className="drill-crumbs">
+                      <span className="crumb-label">Aufgeschlüsselt nach:</span>
+                      {DIMENSIONS.filter((d) => filters[d.key]).map((d) => (
+                        <span key={d.key} className="crumb">
+                          <span className="crumb-dim">{d.label}:</span> {filters[d.key].length > 38 ? filters[d.key].slice(0, 35) + '…' : filters[d.key]}
+                          <button className="crumb-x" title="Filter entfernen" onClick={() => setFilters((f) => ({ ...f, [d.key]: '' }))}>×</button>
+                        </span>
+                      ))}
+                      <button className="crumb-clear" onClick={() => setFilters((f) => ({ ...f, campaign: '', adset: '', creative: '', placement: '' }))}>alle entfernen</button>
+                    </div>
+                  )}
                   {!hasFb && (tab === 'creative' || tab === 'placement') && (
                     <div className="info-note">Adspend ist je Anzeigengruppe im Sheet hinterlegt – auf Creative-/Placement-Ebene über die Facebook-Anbindung.</div>
                   )}

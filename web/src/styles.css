@@ -403,3 +403,13 @@ body {
 .rank-count { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .rank-track { height: 7px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
 .rank-fill { height: 100%; border-radius: 999px; }
+
+/* ---- Drill-Down Breadcrumbs ---- */
+.drill-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.crumb-label { font-size: 12.5px; color: var(--muted); }
+.crumb { display: inline-flex; align-items: center; gap: 7px; background: var(--accent-soft); border: 1px solid var(--line-strong); color: var(--ink); padding: 5px 6px 5px 11px; border-radius: 999px; font-size: 13px; }
+.crumb-dim { color: var(--muted); }
+.crumb-x { cursor: pointer; border: none; background: rgba(255,255,255,0.08); color: var(--ink); width: 18px; height: 18px; border-radius: 50%; font-size: 14px; line-height: 1; display: grid; place-items: center; }
+.crumb-x:hover { background: var(--accent); color: #1a1505; }
+.crumb-clear { cursor: pointer; border: none; background: none; color: var(--muted); font-size: 12.5px; text-decoration: underline; }
+.crumb-clear:hover { color: var(--accent-ink); }

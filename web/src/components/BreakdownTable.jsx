@@ -6,33 +6,30 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
 
   const hasSpend = rows.some((r) => r.spend != null);
   const hasImpressions = rows.some((r) => r.impressions != null);
+  const hasOutbound = rows.some((r) => r.outboundClicks != null);
 
   const cols = useMemo(() => {
-    const base = [
-      { key: 'key', label: dimLabel, align: 'left', fmt: (v) => v },
-      { key: 'leads', label: 'Leads', fmt: fmtInt },
-      { key: 'tickets', label: 'Tickets', fmt: fmtInt },
-      { key: 'ticketRate', label: 'Ticket-Rate', fmt: fmtPct },
-      { key: 'avgQuality', label: 'Ø Quali', fmt: fmtScore },
-      { key: 'qualified', label: 'Quali A/B', fmt: fmtInt },
-      { key: 'qualifiedRate', label: 'Quali-Rate', fmt: fmtPct },
-    ];
-    if (hasImpressions) {
-      base.push(
-        { key: 'impressions', label: 'Impr.', fmt: fmtInt },
-        { key: 'cpm', label: 'CPM', fmt: fmtEur },
-        { key: 'ctr', label: 'CTR', fmt: fmtPct }
-      );
-    }
+    // Reihenfolge wie gewünscht (links -> rechts)
+    const base = [{ key: 'key', label: dimLabel, align: 'left', fmt: (v) => v }];
+    if (hasSpend) base.push({ key: 'spend', label: 'Adspend', fmt: fmtEur });   // 1
+    base.push({ key: 'leads', label: 'Leads', fmt: fmtInt });                   // 2
+    base.push({ key: 'tickets', label: 'Tickets', fmt: fmtInt });              // 3
     if (hasSpend) {
-      base.push(
-        { key: 'spend', label: 'Adspend', fmt: fmtEur },
-        { key: 'cpl', label: 'CPL', fmt: fmtEur },
-        { key: 'cpt', label: '€/Ticket', fmt: fmtEur }
-      );
+      base.push({ key: 'cpl', label: '€/Lead', fmt: fmtEur });                 // 4
+      base.push({ key: 'cpt', label: '€/Ticket', fmt: fmtEur });               // 5
+    }
+    base.push({ key: 'qualifiedRate', label: 'Quali-Rate', fmt: fmtPct });     // 6
+    base.push({ key: 'avgQuality', label: 'Ø Quali', fmt: fmtScore });         // 7
+    if (hasOutbound) base.push({ key: 'cvrStart', label: 'CVR Start', fmt: fmtPct }); // 8
+    base.push({ key: 'ticketRate', label: 'CVR Ticket', fmt: fmtPct });        // 9
+    if (hasImpressions) base.push({ key: 'cpm', label: 'CPM', fmt: fmtEur });   // 10
+    if (hasOutbound) {
+      base.push({ key: 'outboundCtr', label: 'CTR (ausg.)', fmt: fmtPct });    // 11
+      base.push({ key: 'cpoc', label: 'CPC (ausg.)', fmt: fmtEur });           // 12
+      base.push({ key: 'outboundClicks', label: 'Ausg. Klicks', fmt: fmtInt }); // 13
     }
     return base;
-  }, [dimLabel, hasSpend, hasImpressions]);
+  }, [dimLabel, hasSpend, hasImpressions, hasOutbound]);
 
   const sorted = useMemo(() => {
     const arr = [...rows];

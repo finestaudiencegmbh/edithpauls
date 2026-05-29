@@ -186,9 +186,24 @@ export function combineMetaWithLeads(meta, leads) {
   }
   const leadsByDay = [...leadDay.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
 
+  // Individuell ausgehende Klicks je Dimension (für CTR/CPC/CVR-Start in der
+  // "Performance nach Ebene"-Tabelle), Schlüssel normalisiert.
+  const uocByDim = { campaign: {}, adset: {}, creative: {} };
+  for (const e of entities) {
+    const add = (bucket, name) => {
+      const k = normKey(name);
+      if (!k) return;
+      bucket[k] = (bucket[k] || 0) + (e.uniqueOutboundClicks || 0);
+    };
+    add(uocByDim.campaign, e.campaign);
+    add(uocByDim.adset, e.adset);
+    add(uocByDim.creative, e.creative);
+  }
+
   return {
     hierarchy: result,
     totals,
+    uocByDim,
     nonLeadCampaigns: result.filter((c) => !c.leadCampaign).map((c) => ({ name: c.name, objective: c.objective, spend: c.spend })),
     daily: { spend: spendByDay, leads: leadsByDay },
   };

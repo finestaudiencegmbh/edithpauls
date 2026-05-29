@@ -119,20 +119,27 @@ export function aggregate(leads, dimKey, overviewByAdset, fb) {
     }
     const impressions = m ? m.impressions : null;
     const clicks = m ? m.clicks : null;
+    // Individuell ausgehende Klicks je Dimension (für CTR/CPC/CVR-Start)
+    const uoc = fb?.uocByDim?.[dimKey]?.[normKey(g.key)] ?? null;
 
     rows.push({
       key: g.key,
       leads: total,
       tickets,
-      ticketRate: total ? tickets / total : null,
+      ticketRate: total ? tickets / total : null,   // CVR Ticket (Lead -> Ticket)
       avgQuality,
       qualified,
       qualifiedRate: tickets ? qualified / tickets : null,
       spend,
       impressions,
       clicks,
+      outboundClicks: uoc,
       cpm: impressions ? (spend ?? 0) / (impressions / 1000) : null,
-      ctr: impressions ? clicks / impressions : null,
+      // individuell ausgehende CTR / CPC
+      outboundCtr: impressions && uoc != null ? uoc / impressions : null,
+      cpoc: uoc ? (spend ?? 0) / uoc : null,
+      // CVR Start = Lead pro individuell ausgehendem Klick (Klick -> Lead)
+      cvrStart: uoc ? total / uoc : null,
       cpl: spend != null && total ? spend / total : null,
       cpt: spend != null && tickets ? spend / tickets : null,
     });

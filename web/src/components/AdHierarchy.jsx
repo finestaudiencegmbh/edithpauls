@@ -40,6 +40,24 @@ export default function AdHierarchy({ hierarchy }) {
     return n;
   });
 
+  /**
+   * Klick auf eine Kampagne öffnet sie UND klappt ihre Anzeigengruppen direkt
+   * auf (bei genau einer Anzeigengruppe auch gleich deren Ads). Spart Klicks.
+   */
+  const toggleCampaign = (c) => setOpen((s) => {
+    const n = new Set(s);
+    if (n.has(c.id)) {
+      n.delete(c.id);
+      (c.adsets || []).forEach((a) => n.delete(`${c.id}/${a.id}`));
+    } else {
+      n.add(c.id);
+      const adsets = (c.adsets || []).filter((a) => !onlyActive || a.active !== false);
+      adsets.forEach((a) => n.add(`${c.id}/${a.id}`));
+      if (adsets.length === 1) n.add(`${c.id}/${adsets[0].id}/ads`); // Marker, Ads zeigen
+    }
+    return n;
+  });
+
   const campaigns = (hierarchy || []).filter((c) => !onlyActive || c.active !== false);
 
   return (
@@ -76,7 +94,7 @@ export default function AdHierarchy({ hierarchy }) {
               const adsets = c.adsets.filter((a) => !onlyActive || a.active !== false);
               return (
                 <React.Fragment key={c.id}>
-                  <tr className="row-campaign clickable" onClick={() => toggle(c.id)}>
+                  <tr className="row-campaign clickable" onClick={() => toggleCampaign(c)}>
                     <td className="left">
                       <span className={`caret ${cOpen ? 'open' : ''}`}>▶</span>
                       <StatusDot active={c.active} />
@@ -87,7 +105,7 @@ export default function AdHierarchy({ hierarchy }) {
                   </tr>
                   {cOpen && adsets.map((a) => {
                     const aId = `${c.id}/${a.id}`;
-                    const aOpen = open.has(aId);
+                    const aOpen = open.has(aId) || open.has(`${aId}/ads`);
                     const ads = a.ads || [];
                     return (
                       <React.Fragment key={aId}>

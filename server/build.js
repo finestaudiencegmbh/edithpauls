@@ -120,6 +120,10 @@ export function buildDataset({ leads, tickets, overview }, cfg) {
       creative: collapse(r.utm.medium) || '(unbekannt)',
       placement: placementLabel(r.utm.term),
       placementRaw: collapse(r.utm.term),
+      // Rohe UTM-Werte für den Quellen-Tab (Donut/Top-Listen)
+      sourceRaw: collapse(r.utm.source),
+      campaignRaw: collapse(r.utm.campaign),
+      mediumRaw: collapse(r.utm.medium),
       quality,
       answers: r.answers,
     });

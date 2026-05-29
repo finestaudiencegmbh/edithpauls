@@ -207,3 +207,20 @@ export function tierDistribution(leads, tiers) {
   }
   return dist;
 }
+
+/**
+ * Zählt Leads je Rohwert eines UTM-Feldes (für den Quellen-Tab).
+ * field: 'sourceRaw' | 'campaignRaw' | 'creativeRaw' (siehe unten).
+ * Liefert sortierte Liste [{ key, count }] absteigend.
+ */
+export function groupCount(leads, getKey, { limit = 0, emptyLabel = '(direkt)' } = {}) {
+  const m = new Map();
+  for (const l of leads) {
+    const raw = getKey(l);
+    const key = raw && String(raw).trim() ? String(raw).trim() : emptyLabel;
+    m.set(key, (m.get(key) || 0) + 1);
+  }
+  let arr = [...m.entries()].map(([key, count]) => ({ key, count })).sort((a, b) => b.count - a.count);
+  if (limit > 0) arr = arr.slice(0, limit);
+  return arr;
+}

@@ -13,6 +13,7 @@ import { fmtEur, fmtInt } from './lib.js';
 
 const NAV = [
   { key: 'dashboard', label: 'Dashboard', icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
+  { key: 'campaigns', label: 'Kampagnen', icon: 'M3 3v18h18M7 15l4-4 3 3 5-6' },
   { key: 'leads', label: 'Leadliste', icon: 'M3 5h18M3 12h18M3 19h18' },
   { key: 'sources', label: 'Quellen', icon: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 0v10l7 3' },
 ];
@@ -156,13 +157,6 @@ export default function App() {
                 {/* KPI-Boxen darunter */}
                 <Kpis kpis={kpis} dist={dist} tiers={tiers} />
 
-                {(hasFb && fb.hierarchy) && (
-                  <section className="panel">
-                    <div className="panel-head"><div><h2>Kampagnen-Aufschlüsselung</h2><span className="panel-sub">Kampagne → Anzeigengruppe → Creative · Facebook-Kennzahlen + Lead-Attribution</span></div></div>
-                    <AdHierarchy hierarchy={fb.hierarchy} />
-                  </section>
-                )}
-
                 <section className="panel">
                   <div className="panel-head"><div><h2>Performance nach Ebene</h2><span className="panel-sub">Kampagnen, Anzeigengruppen, Creatives und Placements</span></div></div>
                   <div className="tabs-row">
@@ -191,6 +185,20 @@ export default function App() {
                   <BreakdownTable rows={rows} dimLabel={DIMENSIONS.find((d) => d.key === tab).label} onSelect={selectDim} tiers={tiers} />
                 </section>
               </>
+            )}
+
+            {view === 'campaigns' && (
+              hasFb && fb.hierarchy ? (
+                <section className="panel">
+                  <div className="panel-head"><div><h2>Kampagnen-Aufschlüsselung</h2><span className="panel-sub">Kampagne → Anzeigengruppe → Creative · Facebook-Kennzahlen + Lead-Attribution</span></div></div>
+                  <AdHierarchy hierarchy={fb.hierarchy} />
+                </section>
+              ) : (
+                <section className="panel">
+                  <div className="panel-head"><div><h2>Kampagnen-Aufschlüsselung</h2></div></div>
+                  <div className="info-note">Keine Facebook-Daten verfügbar. Prüfe die Meta-Anbindung (META_ACCESS_TOKEN, META_AD_ACCOUNT_ID).</div>
+                </section>
+              )
             )}
 
             {view === 'leads' && (

@@ -47,16 +47,6 @@ export default function Filters({ leads, filters, setFilters, tiers, onReset }) 
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
-      </div>
-
-      <div className="filters-row tier-row" style={{ marginTop: 18 }}>
-        <span className="tier-label">Qualität:</span>
-        {tiers.map((t) => (
-          <button key={t.key} className={`tier-chip ${filters.tiers.includes(t.key) ? 'active' : ''}`} style={filters.tiers.includes(t.key) ? { background: t.color, borderColor: t.color } : { borderColor: t.color, color: t.color }} onClick={() => toggleTier(t.key)}>
-            {t.label}
-          </button>
-        ))}
-        <button className={`tier-chip ${filters.tiers.includes('none') ? 'active' : ''}`} onClick={() => toggleTier('none')}>ohne Score</button>
         <button className="reset-btn" onClick={onReset}>Filter zurücksetzen</button>
       </div>
 
@@ -73,6 +63,16 @@ export default function Filters({ leads, filters, setFilters, tiers, onReset }) 
             <Select label="Einkommen" value={filters.income} onChange={(v) => set({ income: v })} options={answerValues(leads, 'income')} />
             <Select label="Immobilien" value={filters.realEstate} onChange={(v) => set({ realEstate: v })} options={answerValues(leads, 'realEstate')} />
             <Select label="Beschäftigung" value={filters.employment} onChange={(v) => set({ employment: v })} options={answerValues(leads, 'employment')} />
+          </div>
+
+          <div className="filters-row tier-row">
+            <span className="tier-label">Qualität:</span>
+            {tiers.map((t) => (
+              <button key={t.key} className={`tier-chip ${filters.tiers.includes(t.key) ? 'active' : ''}`} style={filters.tiers.includes(t.key) ? { background: t.color, borderColor: t.color } : { borderColor: t.color, color: t.color }} onClick={() => toggleTier(t.key)}>
+                {t.label}
+              </button>
+            ))}
+            <button className={`tier-chip ${filters.tiers.includes('none') ? 'active' : ''}`} onClick={() => toggleTier('none')}>ohne Score</button>
           </div>
         </div>
       )}

@@ -17,11 +17,11 @@ function MetricCells({ n, leadHidden }) {
       <td className="num">{leadHidden ? dash : fmtInt(n.tickets)}</td>
       <td className="num">{leadHidden ? dash : fmtEur(n.cpl)}</td>
       <td className="num">{leadHidden ? dash : fmtEur(n.cpt)}</td>
-      <td className="num">{leadHidden ? dash : fmtPct(n.qualifiedRate)}</td>
+      <td className="num grp-start">{leadHidden ? dash : fmtPct(n.qualifiedRate)}</td>
       <td className="num">{leadHidden ? dash : fmtScore(n.avgQuality)}</td>
       <td className="num lp">{leadHidden ? dash : fmtPct(n.cvrStart)}</td>
       <td className="num">{leadHidden ? dash : fmtPct(n.cvrTicket)}</td>
-      <td className="num">{fmtEur2(n.cpm)}</td>
+      <td className="num grp-start">{fmtEur2(n.cpm)}</td>
       <td className="num">{fmtPct(n.outboundCtr)}</td>
       <td className="num">{fmtEur2(n.cpoc)}</td>
       <td className="num">{fmtInt(n.outboundClicks)}</td>
@@ -76,6 +76,12 @@ export default function AdHierarchy({ hierarchy }) {
       <div className="table-wrap">
         <table className="data-table hierarchy">
           <thead>
+            <tr className="group-head">
+              <th className="left"></th>
+              <th className="grp grp-result" colSpan={5}>Ergebnis</th>
+              <th className="grp grp-quality" colSpan={4}>Qualität &amp; Funnel</th>
+              <th className="grp grp-fb" colSpan={4}>Facebook-Kennzahlen</th>
+            </tr>
             <tr>
               <th className="left">Kampagne / Anzeigengruppe / Creative</th>
               <th className="num">Adspend</th>
@@ -83,11 +89,11 @@ export default function AdHierarchy({ hierarchy }) {
               <th className="num">Tickets</th>
               <th className="num">€/Lead</th>
               <th className="num">€/Ticket</th>
-              <th className="num">Quali-Rate</th>
+              <th className="num grp-start">Quali-Rate</th>
               <th className="num">Ø Quali</th>
               <th className="num" title="Leads ÷ individuell ausgehende Klicks (Klick → Lead)">CVR Start</th>
               <th className="num" title="Tickets ÷ Leads (Lead → Ticket)">CVR Ticket</th>
-              <th className="num">CPM</th>
+              <th className="num grp-start" title="Kosten pro 1.000 Impressionen">CPM</th>
               <th className="num" title="Individuell ausgehende CTR">CTR (ausg.)</th>
               <th className="num" title="Individueller ausgehender Klickpreis">CPC (ausg.)</th>
               <th className="num" title="Individuell ausgehende Klicks">Ausg. Klicks</th>

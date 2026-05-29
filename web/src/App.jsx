@@ -78,8 +78,10 @@ export default function App() {
 
       {fb?.configured && fb?.error && (
         <div className="error-banner warn">
-          <strong>Facebook (Supermetrics):</strong> {fb.error}
-          <div className="hint">Das Sheet-Dashboard funktioniert normal weiter. Prüfe SUPERMETRICS_API_KEY und die Query (ds_id, ds_accounts, ds_user) in der Konfiguration.</div>
+          <strong>Facebook{fb.provider === 'meta' ? ' (Meta API)' : ' (Supermetrics)'}:</strong> {fb.error}
+          <div className="hint">{fb.provider === 'meta'
+            ? 'Das Sheet-Dashboard funktioniert normal weiter. Prüfe META_ACCESS_TOKEN (Berechtigung ads_read, nicht abgelaufen) und META_AD_ACCOUNT_ID.'
+            : 'Das Sheet-Dashboard funktioniert normal weiter. Prüfe SUPERMETRICS_API_KEY und die Query (ds_id, ds_accounts, ds_user).'}</div>
         </div>
       )}
 

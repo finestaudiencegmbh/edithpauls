@@ -10,6 +10,7 @@ import { buildDataset } from './build.js';
 import { loadScoringConfig } from './scoring.js';
 import { getSampleParsed } from './sample-data.js';
 import { isSupermetricsConfigured, fetchFbInsights, aggregateFb } from './supermetrics.js';
+import { isMetaConfigured, fetchMetaInsights } from './meta.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -58,16 +59,19 @@ async function loadDataset({ refresh = false } = {}) {
   }
   const dataset = buildDataset(parsed, cfg);
 
-  // Facebook-Ads-Daten via Supermetrics (optional, Phase 2). Fehler hier
-  // dürfen das Sheet-Dashboard nicht blockieren.
-  let fb = { configured: isSupermetricsConfigured(), error: null, totals: null, byDim: null, rows: 0 };
-  if (isSupermetricsConfigured()) {
+  // Facebook-Ads-Daten: bevorzugt direkt über die Meta Marketing API,
+  // alternativ über Supermetrics. Fehler hier dürfen das Sheet-Dashboard
+  // nicht blockieren.
+  const metaOn = isMetaConfigured();
+  const smOn = isSupermetricsConfigured();
+  let fb = { configured: metaOn || smOn, provider: metaOn ? 'meta' : smOn ? 'supermetrics' : null, error: null, totals: null, byDim: null, rows: 0 };
+  if (metaOn || smOn) {
     try {
-      const records = await fetchFbInsights();
+      const records = metaOn ? await fetchMetaInsights() : await fetchFbInsights();
       const agg = aggregateFb(records);
-      fb = { configured: true, error: null, fetchedAt: new Date().toISOString(), ...agg };
+      fb = { configured: true, provider: metaOn ? 'meta' : 'supermetrics', error: null, fetchedAt: new Date().toISOString(), ...agg };
     } catch (err) {
-      console.error('Supermetrics-Fehler:', err.message);
+      console.error(`${metaOn ? 'Meta' : 'Supermetrics'}-Fehler:`, err.message);
       fb.error = err.message;
     }
   }

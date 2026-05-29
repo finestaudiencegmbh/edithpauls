@@ -14,7 +14,7 @@
     "build": "vite build",
     "start": "node server/index.js",
     "serve": "npm run build && npm run start",
-    "test": "node server/parser.test.mjs && node server/supermetrics.test.mjs"
+    "test": "node server/parser.test.mjs && node server/supermetrics.test.mjs && node server/meta.test.mjs"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

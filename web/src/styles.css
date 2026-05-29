@@ -290,23 +290,38 @@ body {
 .chart-tooltip .tt-row { display: flex; align-items: center; gap: 6px; color: var(--ink-soft); }
 
 /* ---- Ad-Hierarchie ---- */
-.data-table.hierarchy th { font-size: 11px; }
-.data-table.hierarchy td { padding: 11px 12px; }
-.caret { display: inline-block; width: 14px; font-size: 9px; color: var(--muted); transition: transform .15s ease; margin-right: 4px; }
+.data-table.hierarchy { border-collapse: separate; border-spacing: 0; }
+.data-table.hierarchy th { font-size: 11px; padding: 12px 14px; }
+.data-table.hierarchy td { padding: 16px 14px; }
+.data-table.hierarchy tbody td { border-bottom: none; }
+.caret { display: inline-block; width: 14px; font-size: 9px; color: var(--muted); transition: transform .15s ease; margin-right: 6px; }
 .caret.open { transform: rotate(90deg); }
-.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 9px; vertical-align: middle; }
 .status-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
 .status-dot.off { background: var(--faint); }
 .hier-name { display: inline-block; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
-.lvl-campaign { font-weight: 650; color: #fff; }
+.lvl-campaign { font-weight: 650; color: #fff; font-size: 15px; }
 .lvl-adset { font-weight: 500; color: var(--ink-soft); }
 .lvl-ad { color: var(--muted); }
-.row-campaign { background: rgba(208, 187, 90, 0.05); }
-.row-campaign:hover, .row-adset:hover { background: var(--accent-soft) !important; }
-.row-adset td { border-bottom-color: rgba(208,187,90,0.06); }
-.row-ad td { background: rgba(4, 4, 9, 0.35); color: var(--muted); }
-.indent-1 { padding-left: 30px !important; }
-.indent-2 { padding-left: 54px !important; }
+
+/* Kampagne = klar abgegrenzter Block mit kräftiger Trennlinie + Abstand darüber */
+.row-campaign { background: rgba(208, 187, 90, 0.06); }
+.row-campaign td { border-top: 14px solid transparent; box-shadow: inset 0 2px 0 var(--line-strong); }
+.data-table.hierarchy tbody tr.row-campaign:first-child td { border-top-width: 0; }
+.row-campaign td:first-child { border-left: 3px solid var(--accent); }
+.row-campaign:hover { background: var(--accent-soft) !important; }
+.row-campaign .num { font-weight: 600; color: var(--ink); }
+/* Anzeigengruppe: dezente Trennlinie, leicht abgesetzt */
+.row-adset { background: rgba(255,255,255,0.015); }
+.row-adset td { border-top: 1px solid var(--line); }
+.row-adset:hover { background: var(--accent-soft) !important; }
+.row-adset td:first-child { border-left: 3px solid rgba(208,187,90,0.3); }
+/* Ad: am dezentesten */
+.row-ad td { background: rgba(4, 4, 9, 0.4); color: var(--muted); border-top: 1px solid rgba(255,255,255,0.03); }
+.row-ad td:first-child { border-left: 3px solid rgba(255,255,255,0.06); }
+
+.indent-1 { padding-left: 34px !important; }
+.indent-2 { padding-left: 60px !important; }
 .data-table .lp { color: var(--accent-ink); font-weight: 600; }
 
 /* ---- Date Range Picker (Meta-Style) ---- */

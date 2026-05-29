@@ -23,6 +23,9 @@ const AUTH_USER = process.env.DASHBOARD_USER;
 const AUTH_PASS = process.env.DASHBOARD_PASSWORD;
 if (AUTH_USER && AUTH_PASS) {
   app.use((req, res, next) => {
+    // Health-Check muss ohne Login erreichbar sein (Render/Hoster prüfen ihn
+    // ohne Zugangsdaten – sonst schlägt das Deployment fehl).
+    if (req.path === '/api/health') return next();
     const hdr = req.headers.authorization || '';
     const [scheme, encoded] = hdr.split(' ');
     if (scheme === 'Basic' && encoded) {

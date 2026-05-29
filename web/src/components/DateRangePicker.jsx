@@ -56,8 +56,10 @@ function MonthGrid({ view, from, to, onPick }) {
   for (let i = 0; i < lead; i++) cells.push(null);
   for (let d = 1; d <= days; d++) cells.push(new Date(view.getFullYear(), view.getMonth(), d));
 
+  const today = new Date(); today.setHours(0, 0, 0, 0);
   const inRange = (d) => from && to && ymd(d) >= from && ymd(d) <= to;
   const isEnd = (d) => (from && ymd(d) === from) || (to && ymd(d) === to);
+  const isFuture = (d) => d > today;
 
   return (
     <div className="dp-month">
@@ -67,8 +69,9 @@ function MonthGrid({ view, from, to, onPick }) {
         {cells.map((d, i) => d ? (
           <button
             key={i}
-            className={`dp-day ${inRange(d) ? 'in' : ''} ${isEnd(d) ? 'end' : ''}`}
-            onClick={() => onPick(d)}
+            className={`dp-day ${inRange(d) ? 'in' : ''} ${isEnd(d) ? 'end' : ''} ${isFuture(d) ? 'future' : ''}`}
+            disabled={isFuture(d)}
+            onClick={() => !isFuture(d) && onPick(d)}
           >{d.getDate()}</button>
         ) : <span key={i} className="dp-empty" />)}
       </div>
@@ -108,6 +111,9 @@ export default function DateRangePicker({ from, to, onApply }) {
 
   const label = from && to ? `${fmtDE(from)} – ${fmtDE(to)}` : 'Maximum (gesamter Zeitraum)';
   const prevView = startOfMonth(addDays(startOfMonth(view), -1));
+  // Nicht in die Zukunft blättern: 'view' (rechter Monat) zeigt nie über den aktuellen Monat hinaus
+  const thisMonth = startOfMonth(new Date());
+  const atCurrentMonth = view.getFullYear() === thisMonth.getFullYear() && view.getMonth() === thisMonth.getMonth();
 
   return (
     <div className="dp" ref={ref}>
@@ -135,7 +141,7 @@ export default function DateRangePicker({ from, to, onApply }) {
           <div className="dp-cal">
             <div className="dp-cal-head">
               <button className="dp-nav" onClick={() => setView(prevView)} aria-label="zurück">‹</button>
-              <button className="dp-nav" onClick={() => setView(startOfMonth(addDays(endOfMonth(view), 1)))} aria-label="vor">›</button>
+              <button className="dp-nav" disabled={atCurrentMonth} onClick={() => !atCurrentMonth && setView(startOfMonth(addDays(endOfMonth(view), 1)))} aria-label="vor">›</button>
             </div>
             <div className="dp-months">
               <MonthGrid view={prevView} from={tmpFrom} to={tmpTo} onPick={pick} />

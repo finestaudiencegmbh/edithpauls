@@ -15,13 +15,13 @@ function Card({ label, value, sub, accent }) {
 export default function Kpis({ kpis, dist, tiers }) {
   return (
     <div className="kpi-grid">
-      <Card label="Adspend (zugeordnet)" value={fmtEur(kpis.spend)} sub={`${fmtInt(kpis.paid)} bezahlte Leads`} accent="#a855f7" />
+      <Card label="Adspend (zugeordnet)" value={fmtEur(kpis.spend)} sub={`${fmtInt(kpis.paid)} bezahlte Leads`} accent="#d0bb5a" />
       <Card label="Leads gesamt" value={fmtInt(kpis.total)} sub={`${fmtInt(kpis.organic)} organisch`} />
       <Card label="CPL" value={fmtEur(kpis.cpl)} sub="Kosten pro Lead" />
-      <Card label="VIP-Tickets" value={fmtInt(kpis.tickets)} sub={`Rate ${fmtPct(kpis.ticketRate)}`} accent="#38bdf8" />
+      <Card label="VIP-Tickets" value={fmtInt(kpis.tickets)} sub={`Rate ${fmtPct(kpis.ticketRate)}`} accent="#5ec8d8" />
       <Card label="Kosten / Ticket" value={fmtEur(kpis.cpt)} />
-      <Card label="Ø Lead-Qualität" value={fmtScore(kpis.avgQuality)} sub="von 100" accent="#34d399" />
-      <Card label="Qualifizierte Tickets" value={fmtInt(kpis.qualified)} sub={`Tier A/B · ${fmtPct(kpis.qualifiedRate)}`} accent="#34d399" />
+      <Card label="Ø Lead-Qualität" value={fmtScore(kpis.avgQuality)} sub="von 100" accent="#6fcf97" />
+      <Card label="Qualifizierte Tickets" value={fmtInt(kpis.qualified)} sub={`Tier A/B · ${fmtPct(kpis.qualifiedRate)}`} accent="#d0bb5a" />
       <div className="kpi-card kpi-dist">
         <div className="kpi-label">Qualitäts-Verteilung (Tickets)</div>
         <div className="dist-bars">

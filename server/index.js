@@ -16,7 +16,10 @@ import { combineMetaWithLeads } from './combine.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const PORT = process.env.PORT || 3000;
-const CACHE_TTL = (Number(process.env.CACHE_TTL_SECONDS) || 120) * 1000;
+// Standard 15 Min: Ansehen/Tab-Wechsel/erneutes Öffnen kommt aus dem Cache und
+// kostet keine Meta-Calls (schont das API-Rate-Limit). Der „Aktualisieren"-
+// Button (refresh=1) umgeht den Cache und holt immer frische Daten.
+const CACHE_TTL = (Number(process.env.CACHE_TTL_SECONDS) || 900) * 1000;
 
 const app = express();
 app.use(express.json());

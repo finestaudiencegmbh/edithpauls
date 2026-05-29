@@ -20,7 +20,7 @@ services:
       - key: SPREADSHEET_ID
         value: 1rxK4s-qh1Enbw5L_Ni37xikPEpFe82-5w_7GT-PX6ng
       - key: CACHE_TTL_SECONDS
-        value: "120"
+        value: "900"
       # --- Login (teilbare URL + Passwort) – beim Deploy ausfüllen ---
       - key: DASHBOARD_USER
         sync: false

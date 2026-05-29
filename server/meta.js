@@ -59,16 +59,28 @@ function dateRange(lookback) {
   return { since: ymd(start), until: ymd(end) };
 }
 
-/** Generischer paginierter GET gegen die Graph API. */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Rate-Limit-Codes von Meta (4 = App-Limit, 17 = User-Limit, 613 = Custom-Limit)
+const RATE_LIMIT_CODES = new Set([4, 17, 613, 80000, 80004]);
+
+/** Generischer paginierter GET gegen die Graph API, mit Retry bei Rate-Limit. */
 async function graphGet(url) {
   const out = [];
   let next = url;
   let guard = 0;
   while (next && guard < 60) {
     guard += 1;
-    const res = await fetch(next);
-    const json = await res.json().catch(() => null);
-    if (!json) throw new Error(`Meta: unerwartete Antwort (HTTP ${res.status})`);
+    let json = null;
+    // bis zu 3 Versuche bei Rate-Limit (Code 4 etc.) mit ansteigender Wartezeit
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const res = await fetch(next);
+      json = await res.json().catch(() => null);
+      if (!json) throw new Error(`Meta: unerwartete Antwort (HTTP ${res.status})`);
+      if (json.error && RATE_LIMIT_CODES.has(json.error.code)) {
+        if (attempt < 2) { await sleep(2000 * (attempt + 1)); continue; }
+      }
+      break;
+    }
     if (json.error) {
       const e = json.error;
       throw new Error(`Meta-Fehler: ${e.message}${e.code ? ` (Code ${e.code})` : ''}`);

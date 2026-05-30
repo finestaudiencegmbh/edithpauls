@@ -107,21 +107,12 @@ async function loadDataset({ refresh = false, from = '', to = '' } = {}) {
   return payload;
 }
 
-/** Tagesschlüssel in Europe/Berlin (Sheet-Zeitstempel sind UTC). */
-const berlinDayFmt = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
-});
-function berlinDay(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : berlinDayFmt.format(d);
-}
-
-/** Begrenzt Leads auf [from,to] (YYYY-MM-DD, inklusive, Berliner Zeit). */
+/** Begrenzt Leads auf [from,to] (YYYY-MM-DD, inklusive). Tagesdatum = UTC,
+ *  passend zum im Sheet angezeigten +0000-Zeitstempel. */
 function filterLeadsByRange(leads, from, to) {
   if (!from && !to) return leads;
   return leads.filter((l) => {
-    const day = berlinDay(l.wonAt);
+    const day = (l.wonAt || '').slice(0, 10);
     if (!day) return false;
     if (from && day < from) return false;
     if (to && day > to) return false;

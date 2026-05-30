@@ -52,66 +52,59 @@ export function buildDataset({ leads, tickets, overview }, cfg) {
   const organicLabel = campCfg.organicLabel || '(organisch)';
   const unattribLabel = campCfg.unattributablePaidLabel || '(Paid · nicht zuordenbar)';
 
-  const byEmail = new Map();
-
-  const makeRecord = (email) => {
-    if (!byEmail.has(email)) {
-      byEmail.set(email, {
-        email,
-        firstName: '',
-        lastName: '',
-        phone: '',
-        wonAt: null,
-        ticketAt: null,
-        utm: { source: '', medium: '', campaign: '', term: '' },
-        hasTicket: false,
-        answers: null,
-      });
-    }
-    return byEmail.get(email);
-  };
-
-  // 1) Leads einlesen
-  for (const l of leads) {
-    if (!l.email) continue;
-    const r = makeRecord(l.email);
-    r.firstName ||= l.firstName;
-    r.lastName ||= l.lastName;
-    r.wonAt = r.wonAt || l.wonAt;
-    if (collapse(l.utm.source)) r.utm = { ...l.utm };
-    // "VIP-Ticket geholt am" in der Leads-Zeile ist das zuverlässigste
-    // Ticket-Signal und liegt auf derselben Zeile wie das Creative.
-    // Dadurch werden Tickets korrekt auf Kampagne/Anzeigengruppe/Creative/
-    // Placement zugeordnet – unabhängig vom (fehleranfälligen) E-Mail-Join
-    // zum Antworten-Tab, der nur noch die Qualitäts-Antworten beisteuert.
-    if (l.ticketAt) {
-      r.ticketAt = l.ticketAt;
-      r.hasTicket = true;
+  // Antworten/Qualität aus dem VIP-Tab nach E-Mail indizieren (zum Anreichern
+  // der Lead-Zeilen; verändert NICHT die Lead-Anzahl).
+  const ticketByEmail = new Map();
+  for (const t of tickets) {
+    for (const e of [t.email, t.emailTypeform]) {
+      if (e && !ticketByEmail.has(e)) ticketByEmail.set(e, t);
     }
   }
 
-  // 2) Tickets dranjoinen (und ggf. neue Personen anlegen, die nur im
-  //    VIP-Tab stehen). Funnelcockpit- und Typeform-Mail können sich durch
-  //    Tippfehler unterscheiden – wir bevorzugen die E-Mail, zu der bereits
-  //    ein Lead existiert, damit Lead und Ticket sicher zusammenfinden.
+  // 1) Jede Lead-Zeile = ein Datensatz (KEIN Dedup, auch ohne E-Mail). Damit
+  //    entspricht die Lead-Anzahl exakt den Zeilen im Sheet.
+  const recs = [];
+  const seenLeadEmails = new Set();
+  for (const l of leads) {
+    const email = l.email || '';
+    if (email) seenLeadEmails.add(email);
+    const t = email ? ticketByEmail.get(email) : null;
+    recs.push({
+      email,
+      firstName: l.firstName || t?.firstName || '',
+      lastName: l.lastName || t?.lastName || '',
+      phone: t?.phone || '',
+      wonAt: l.wonAt,
+      // hasTicket pro Zeile zuverlässig aus der "VIP-Ticket geholt am"-Spalte
+      ticketAt: l.ticketAt || null,
+      hasTicket: Boolean(l.ticketAt),
+      utm: collapse(l.utm.source) ? { ...l.utm } : (t ? { ...t.utm } : { ...l.utm }),
+      answers: t?.answers || null,
+    });
+  }
+
+  // 2) VIP-Tickets, deren E-Mail in KEINER Lead-Zeile vorkommt, als eigene
+  //    Datensätze ergänzen (z. B. nur im VIP-Tab erfasste Personen).
   for (const t of tickets) {
-    const candidates = [t.email, t.emailTypeform].filter(Boolean);
-    const email = candidates.find((e) => byEmail.has(e)) || candidates[0];
-    if (!email) continue;
-    const r = makeRecord(email);
-    r.firstName ||= t.firstName;
-    r.lastName ||= t.lastName;
-    r.phone ||= t.phone;
-    r.hasTicket = true;
-    r.ticketAt = r.ticketAt || t.at;
-    r.answers = t.answers;
-    // UTM aus dem Ticket nur übernehmen, wenn der Lead keine hatte
-    if (!collapse(r.utm.source) && collapse(t.utm.source)) r.utm = { ...t.utm };
+    // mit einer Lead-Zeile verknüpft? (beide Mail-Varianten prüfen)
+    if ((t.email && seenLeadEmails.has(t.email)) || (t.emailTypeform && seenLeadEmails.has(t.emailTypeform))) continue;
+    const email = t.email || t.emailTypeform || '';
+    recs.push({
+      email,
+      firstName: t.firstName || '',
+      lastName: t.lastName || '',
+      phone: t.phone || '',
+      wonAt: t.at || null,
+      ticketAt: t.at || null,
+      hasTicket: true,
+      utm: { ...t.utm },
+      answers: t.answers || null,
+    });
   }
 
   // 3) Finalisieren: Dimensionen, Quelle, Qualität
   const records = [];
-  for (const r of byEmail.values()) {
+  for (const r of recs) {
     const paid = isPaid(r.utm, paidAdsets, organicPatterns);
     const quality = r.hasTicket ? computeQuality(r.answers, cfg) : null;
 

@@ -54,7 +54,6 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
     return arr;
   }, [visibleRows, sort]);
 
-  const maxLeads = Math.max(1, ...visibleRows.map((r) => r.leads));
 
   const onSort = (col) => setSort((s) => ({ col, dir: s.col === col && s.dir === 'desc' ? 'asc' : 'desc' }));
 
@@ -87,7 +86,6 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
                 <td key={c.key} className={c.align === 'left' ? 'left' : 'num'} data-label={c.key === 'key' ? '' : c.label}>
                   {c.key === 'key' ? (
                     <div className="cell-name">
-                      <span className="bar" style={{ width: `${(r.leads / maxLeads) * 100}%` }} />
                       {r.active != null && <span className={`status-dot ${r.active ? 'on' : 'off'}`} />}
                       <span className="cell-name-text" title={r.key}>{r.key}</span>
                       {r.active === false && <span className="paused-tag">pausiert</span>}

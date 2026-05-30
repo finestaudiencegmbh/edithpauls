@@ -119,14 +119,16 @@ export function buildDataset({ leads, tickets, overview }, cfg) {
       campaign = organicLabel;
       adset = organicLabel;
       creative = rawCreative || organicLabel;
-    } else if (isNumericId(rawCampaign) || isNumericId(rawAdset) || (!rawCampaign && !rawAdset)) {
+    } else if (isNumericId(rawCampaign) || isNumericId(rawAdset) || !rawCampaign || !rawAdset) {
+      // Paid, aber Tagging unvollständig (Meta-ID ODER Kampagne/Anzeigengruppe
+      // fehlt) -> in den Sammel-Bucket statt einer verwirrenden (unbekannt)-Zeile.
       campaign = unattribLabel;
       adset = unattribLabel;
       creative = rawCreative || unattribLabel;
     } else {
-      campaign = rawCampaign || '(unbekannt)';
-      adset = rawAdset || '(unbekannt)';
-      creative = rawCreative || '(unbekannt)';
+      campaign = rawCampaign;
+      adset = rawAdset;
+      creative = rawCreative || unattribLabel;
     }
 
     records.push({

@@ -231,7 +231,7 @@ body {
 .empty { text-align: center; color: var(--muted); padding: 40px; font-size: 15px; }
 
 .cell-name { position: relative; display: flex; align-items: center; min-width: 240px; max-width: 480px; }
-.cell-name .bar { position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 28px; background: linear-gradient(90deg, rgba(208, 187, 90, 0.42), rgba(208, 187, 90, 0.06)); border-radius: 7px; z-index: 0; box-shadow: 0 0 14px rgba(208, 187, 90, 0.18); }
+
 .cell-name-text { position: relative; z-index: 1; padding: 3px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; color: var(--ink); }
 
 /* ---- Leads table ---- */
@@ -604,7 +604,7 @@ body {
   .panel .data-table:not(.hierarchy) td.left::before,
   .panel .data-table:not(.hierarchy) td:first-child::before { display: none; }
   .cell-name { max-width: none; }
-  .cell-name .bar { display: none; }
+
   .cell-name-text { white-space: normal; }
 
   /* Leads-Tabelle: gleiche Karten-Logik + größere Schrift */
@@ -661,7 +661,7 @@ body {
 /* Pausierte Zeilen in der Breakdown-Tabelle: ausgegraut */
 .data-table tr.is-paused td { color: var(--faint); }
 .data-table tr.is-paused .cell-name-text { color: var(--muted); }
-.data-table tr.is-paused .bar { opacity: .35; }
+
 .paused-tag { margin-left: 8px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--faint); background: rgba(255,255,255,0.05); border: 1px solid var(--line); padding: 1px 7px; border-radius: 6px; vertical-align: middle; }
 .cell-name .status-dot { margin: 0 8px 0 2px; }
 

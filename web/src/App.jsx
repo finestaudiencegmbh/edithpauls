@@ -62,16 +62,31 @@ export default function App() {
   const leadDaily = useMemo(() => (data ? leadsByDay(filtered) : []), [data, filtered]);
   const cplDaily = useMemo(() => ((hasFb && fb.daily) ? cplByDay(fb.daily.spend, filtered) : []), [hasFb, fb, filtered]);
 
+  // Drill-Pfad NUR für "Performance nach Ebene" – getrennt von den globalen
+  // Filtern. Klick = reinzoomen, ohne dauerhaften globalen Filter zu setzen.
+  const [drill, setDrill] = useState({ campaign: '', adset: '', creative: '' });
+
+  // Leads zusätzlich nach dem Drill-Pfad einschränken (lokal, nicht global)
+  const drillLeads = useMemo(() => {
+    if (!data) return [];
+    const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+    return filtered.filter((l) =>
+      (!drill.campaign || norm(l.campaign) === norm(drill.campaign)) &&
+      (!drill.adset || norm(l.adset) === norm(drill.adset)) &&
+      (!drill.creative || norm(l.creative) === norm(drill.creative))
+    );
+  }, [data, filtered, drill]);
+
   const rows = useMemo(
-    () => (data ? aggregate(filtered, tab, data.overviewByAdset, fb, filters) : []),
-    [data, filtered, tab, fb, filters]
+    () => (data ? aggregate(drillLeads, tab, data.overviewByAdset, fb, drill) : []),
+    [data, drillLeads, tab, fb, drill]
   );
 
-  // Drill-Down: Klick auf eine Zeile filtert nach diesem Wert UND springt auf
-  // die nächst-tiefere Ebene (Kampagne -> Anzeigengruppe -> Creative -> Placement).
+  // Drill-Down: Klick auf eine Zeile zoomt eine Ebene tiefer (lokaler Pfad).
   const DRILL_ORDER = ['campaign', 'adset', 'creative', 'placement'];
   const selectDim = (key) => {
-    setFilters((f) => ({ ...f, [tab]: key }));
+    if (tab === 'placement') return; // unterste Ebene, kein weiteres Reinzoomen
+    setDrill((d) => ({ ...d, [tab]: key }));
     const idx = DRILL_ORDER.indexOf(tab);
     if (idx >= 0 && idx < DRILL_ORDER.length - 1) setTab(DRILL_ORDER[idx + 1]);
   };
@@ -175,16 +190,16 @@ export default function App() {
                     </div>
                     <span className="tabs-hint">Zeile anklicken = eine Ebene tiefer</span>
                   </div>
-                  {DIMENSIONS.some((d) => filters[d.key]) && (
+                  {DIMENSIONS.some((d) => drill[d.key]) && (
                     <div className="drill-crumbs">
                       <span className="crumb-label">Aufgeschlüsselt nach:</span>
-                      {DIMENSIONS.filter((d) => filters[d.key]).map((d) => (
+                      {DIMENSIONS.filter((d) => drill[d.key]).map((d) => (
                         <span key={d.key} className="crumb">
-                          <span className="crumb-dim">{d.label}:</span> {filters[d.key].length > 38 ? filters[d.key].slice(0, 35) + '…' : filters[d.key]}
-                          <button className="crumb-x" title="Filter entfernen" onClick={() => setFilters((f) => ({ ...f, [d.key]: '' }))}>×</button>
+                          <span className="crumb-dim">{d.label}:</span> {drill[d.key].length > 38 ? drill[d.key].slice(0, 35) + '…' : drill[d.key]}
+                          <button className="crumb-x" title="Diese Ebene verlassen" onClick={() => { setDrill((dd) => ({ ...dd, [d.key]: '' })); setTab(d.key); }}>×</button>
                         </span>
                       ))}
-                      <button className="crumb-clear" onClick={() => setFilters((f) => ({ ...f, campaign: '', adset: '', creative: '', placement: '' }))}>alle entfernen</button>
+                      <button className="crumb-clear" onClick={() => { setDrill({ campaign: '', adset: '', creative: '' }); setTab('campaign'); }}>zurücksetzen</button>
                     </div>
                   )}
                   {!hasFb && (tab === 'creative' || tab === 'placement') && (

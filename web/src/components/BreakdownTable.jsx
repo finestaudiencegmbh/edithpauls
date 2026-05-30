@@ -67,7 +67,7 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
           {sorted.map((r) => (
             <tr key={r.key} className="clickable" onClick={() => onSelect?.(r.key)} title="Klicken, um danach zu filtern">
               {cols.map((c) => (
-                <td key={c.key} className={c.align === 'left' ? 'left' : 'num'}>
+                <td key={c.key} className={c.align === 'left' ? 'left' : 'num'} data-label={c.key === 'key' ? '' : c.label}>
                   {c.key === 'key' ? (
                     <div className="cell-name">
                       <span className="bar" style={{ width: `${(r.leads / maxLeads) * 100}%` }} />

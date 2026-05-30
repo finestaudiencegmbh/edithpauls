@@ -12,6 +12,7 @@ import { getSampleParsed } from './sample-data.js';
 import { isSupermetricsConfigured, fetchFbInsights, aggregateFb } from './supermetrics.js';
 import { isMetaConfigured, fetchMetaAll } from './meta.js';
 import { combineMetaWithLeads } from './combine.js';
+import { isChatConfigured, buildContext, chat } from './chat.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -136,6 +137,31 @@ app.get('/api/data', async (req, res) => {
   } catch (err) {
     console.error('Fehler beim Laden der Daten:', err);
     res.status(500).json({ error: err.message, hint: 'Prüfe Service-Account & Freigabe des Sheets (siehe README).' });
+  }
+});
+
+app.get('/api/chat/health', (req, res) => {
+  res.json({ configured: isChatConfigured() });
+});
+
+app.post('/api/chat', async (req, res) => {
+  try {
+    if (!isChatConfigured()) {
+      return res.status(503).json({ error: 'Chatbot nicht konfiguriert (ANTHROPIC_API_KEY fehlt).' });
+    }
+    const { messages, from = '', to = '' } = req.body || {};
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'messages fehlt.' });
+    }
+    const isYmd = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
+    const payload = await loadDataset({ from: isYmd(from) ? from : '', to: isYmd(to) ? to : '' });
+    const leadsInRange = filterLeadsByRange(payload.leads, isYmd(from) ? from : '', isYmd(to) ? to : '');
+    const context = buildContext(payload, leadsInRange);
+    const answer = await chat({ messages: messages.slice(-12), context });
+    res.json({ answer });
+  } catch (err) {
+    console.error('Chat-Fehler:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

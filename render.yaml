@@ -21,6 +21,9 @@ services:
         value: 1rxK4s-qh1Enbw5L_Ni37xikPEpFe82-5w_7GT-PX6ng
       - key: CACHE_TTL_SECONDS
         value: "900"
+      # --- KI-Chatbot (optional) – Anthropic-API-Key ---
+      - key: ANTHROPIC_API_KEY
+        sync: false
       # --- Login (teilbare URL + Passwort) – beim Deploy ausfüllen ---
       - key: DASHBOARD_USER
         sync: false

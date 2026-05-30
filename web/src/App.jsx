@@ -9,6 +9,7 @@ import TimeChart from './components/TimeChart.jsx';
 import CampaignCards from './components/CampaignCards.jsx';
 import DateRangePicker from './components/DateRangePicker.jsx';
 import SourcesView from './components/SourcesView.jsx';
+import ChatBot from './components/ChatBot.jsx';
 import { fmtEur, fmtInt } from './lib.js';
 
 const NAV = [
@@ -240,6 +241,7 @@ export default function App() {
           </>
         )}
       </main>
+      <ChatBot range={range} />
     </div>
   );
 }

@@ -66,6 +66,7 @@ export default function App() {
   // Drill-Pfad NUR für "Performance nach Ebene" – getrennt von den globalen
   // Filtern. Klick = reinzoomen, ohne dauerhaften globalen Filter zu setzen.
   const [drill, setDrill] = useState({ campaign: '', adset: '', creative: '' });
+  const [orgDrill, setOrgDrill] = useState(''); // organische Kampagne, in die reingezoomt wurde
 
   // Leads zusätzlich nach dem Drill-Pfad einschränken (lokal, nicht global)
   const drillLeads = useMemo(() => {
@@ -91,13 +92,19 @@ export default function App() {
 
   const organicRows = useMemo(() => {
     if (!data) return [];
-    // Organisch nach echter Quelle (sourceRaw: instagram, manychat, fb-bio …)
-    // gruppieren – unabhängig vom Paid-Tab. Keine Meta-Daten (addFbRows:false).
-    const leads = filtered
-      .filter((l) => l.sourceType !== 'paid')
-      .map((l) => ({ ...l, _src: l.sourceRaw || '(direkt)' }));
-    return aggregate(leads, '_src', data.overviewByAdset, fb, {}, { addFbRows: false });
-  }, [data, filtered, fb]);
+    // Organisch zweistufig: organicCampaign (ManyChat, Bio, …) -> organicAdset
+    // (Live Automation, Facebook Bio, …). Keine Meta-Daten (addFbRows:false).
+    const base = filtered.filter((l) => l.sourceType !== 'paid');
+    const leads = orgDrill
+      ? base.filter((l) => (l.organicCampaign || '(direkt)') === orgDrill)
+      : base;
+    const dim = orgDrill ? 'organicAdset' : 'organicCampaign';
+    const rows = aggregate(
+      leads.map((l) => ({ ...l, organicCampaign: l.organicCampaign || '(direkt)', organicAdset: l.organicAdset || '(direkt)' })),
+      dim, data.overviewByAdset, fb, {}, { addFbRows: false }
+    );
+    return rows;
+  }, [data, filtered, fb, orgDrill]);
 
   // Drill-Down: Klick auf eine Zeile zoomt eine Ebene tiefer (lokaler Pfad).
   const DRILL_ORDER = ['campaign', 'adset', 'creative', 'placement'];
@@ -227,8 +234,16 @@ export default function App() {
 
                 {organicRows.length > 0 && (
                   <section className="panel">
-                    <div className="panel-head"><div><h2>Organisch</h2><span className="panel-sub">Leads ohne Ad-Kosten, nach Quelle (Instagram, ManyChat, Bio, Newsletter …)</span></div></div>
-                    <BreakdownTable rows={organicRows} dimLabel="Quelle" tiers={tiers} />
+                    <div className="panel-head"><div><h2>Organisch</h2><span className="panel-sub">Leads ohne Ad-Kosten · ManyChat-Flows, Bios, Direkt …</span></div></div>
+                    {orgDrill && (
+                      <div className="drill-crumbs">
+                        <span className="crumb-label">Aufgeschlüsselt nach:</span>
+                        <span className="crumb"><span className="crumb-dim">Quelle:</span> {orgDrill}
+                          <button className="crumb-x" title="zurück" onClick={() => setOrgDrill('')}>×</button>
+                        </span>
+                      </div>
+                    )}
+                    <BreakdownTable rows={organicRows} dimLabel={orgDrill ? 'Unterquelle' : 'Quelle'} onSelect={orgDrill ? undefined : (k) => setOrgDrill(k)} tiers={tiers} />
                   </section>
                 )}
               </>

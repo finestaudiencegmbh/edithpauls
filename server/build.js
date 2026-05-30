@@ -6,6 +6,34 @@ const collapse = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 /** Rein numerischer Wert (z. B. Meta-IDs wie 52540202640549) -> nicht zuordenbar. */
 const isNumericId = (s) => /^\d{6,}$/.test(collapse(s));
 
+const titleCase = (s) => collapse(s).replace(/\b\w/g, (c) => c.toUpperCase());
+
+/**
+ * Aussagekräftiges Label für eine ORGANISCHE Quelle:
+ * - ManyChat (steht im utm_medium) -> "ManyChat · <Kampagnenname>"
+ * - Bio (utm_source enthält "bio")  -> "<Plattform> Bio"  (fb-bio -> Facebook Bio)
+ * - sonst -> die Quelle selbst (Title Case)
+ * Liefert { campaign, adset } für die zweistufige Gruppierung.
+ */
+function organicLabels(utm) {
+  const src = collapse(utm.source).toLowerCase();
+  const med = collapse(utm.medium).toLowerCase();
+  const camp = collapse(utm.campaign);
+
+  if (/manychat/.test(med) || /manychat/.test(src) || /manychat/.test(camp.toLowerCase())) {
+    const flow = camp || titleCase(collapse(utm.medium).replace(/manychat/i, '').replace(/[-_|]/g, ' ').trim()) || '(ohne Flow)';
+    return { campaign: 'ManyChat', adset: flow };
+  }
+  if (/bio/.test(src)) {
+    const platMap = { fb: 'Facebook', facebook: 'Facebook', ig: 'Instagram', insta: 'Instagram', instagram: 'Instagram', yt: 'YouTube', youtube: 'YouTube', tiktok: 'TikTok', tt: 'TikTok' };
+    const token = src.replace(/[-_\s]*bio.*/, '').replace(/[-_\s]+/g, '');
+    const plat = platMap[token] || titleCase(token) || 'Bio';
+    return { campaign: 'Bio', adset: `${plat} Bio` };
+  }
+  const label = titleCase(src) || '(direkt)';
+  return { campaign: label, adset: label };
+}
+
 /** Lesbares Label für ein Placement (utm_term). */
 function placementLabel(term) {
   const t = collapse(term);
@@ -150,6 +178,8 @@ export function buildDataset({ leads, tickets, overview }, cfg) {
       sourceRaw: collapse(r.utm.source),
       campaignRaw: collapse(r.utm.campaign),
       mediumRaw: collapse(r.utm.medium),
+      // Aussagekräftige Gruppierung für den Organisch-Container
+      ...(paid ? {} : (() => { const o = organicLabels(r.utm); return { organicCampaign: o.campaign, organicAdset: o.adset }; })()),
       quality,
       answers: r.answers,
     });

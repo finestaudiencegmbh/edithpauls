@@ -63,8 +63,8 @@ export default function App() {
   const cplDaily = useMemo(() => ((hasFb && fb.daily) ? cplByDay(fb.daily.spend, filtered) : []), [hasFb, fb, filtered]);
 
   const rows = useMemo(
-    () => (data ? aggregate(filtered, tab, data.overviewByAdset, fb) : []),
-    [data, filtered, tab, fb]
+    () => (data ? aggregate(filtered, tab, data.overviewByAdset, fb, filters) : []),
+    [data, filtered, tab, fb, filters]
   );
 
   // Drill-Down: Klick auf eine Zeile filtert nach diesem Wert UND springt auf

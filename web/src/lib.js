@@ -95,7 +95,7 @@ function spendForAdsets(adsetNames, overviewByAdset) {
  * Daten (Supermetrics) je Dimension. Fällt darauf zurück: Adspend je
  * Anzeigengruppe aus der Sheet-Übersicht (nur Kampagne/Anzeigengruppe).
  */
-export function aggregate(leads, dimKey, overviewByAdset, fb) {
+export function aggregate(leads, dimKey, overviewByAdset, fb, filters = {}) {
   const fbDim = fb?.byDim?.[dimKey] || null;
   const groups = new Map();
   for (const l of leads) {
@@ -117,39 +117,60 @@ export function aggregate(leads, dimKey, overviewByAdset, fb) {
       : null;
     const qualified = ticketLeads.filter((l) => ['A', 'B'].includes(l.quality?.tier)).length;
 
+    const dm = fb?.dimMeta?.[dimKey]?.[normKey(g.key)] || null;
     const m = fbDim ? fbDim[normKey(g.key)] : null;
-    let spend = m ? m.spend : null;
+    let spend = m ? m.spend : (dm ? dm.spend : null);
     if (spend == null && (dimKey === 'adset' || dimKey === 'campaign')) {
       spend = spendForAdsets([...g.adsets], overviewByAdset);
     }
-    const impressions = m ? m.impressions : null;
-    const clicks = m ? m.clicks : null;
-    // Individuell ausgehende Klicks je Dimension (für CTR/CPC/CVR-Start)
-    const uoc = fb?.uocByDim?.[dimKey]?.[normKey(g.key)] ?? null;
+    const impressions = (m ? m.impressions : null) ?? (dm ? dm.impressions : null);
+    const clicks = (m ? m.clicks : null) ?? (dm ? dm.clicks : null);
+    const uoc = fb?.uocByDim?.[dimKey]?.[normKey(g.key)] ?? (dm ? dm.uoc : null);
 
-    rows.push({
-      key: g.key,
-      leads: total,
-      tickets,
-      ticketRate: total ? tickets / total : null,   // CVR Ticket (Lead -> Ticket)
-      avgQuality,
-      qualified,
-      qualifiedRate: tickets ? qualified / tickets : null,
-      spend,
-      impressions,
-      clicks,
-      outboundClicks: uoc,
-      cpm: impressions ? (spend ?? 0) / (impressions / 1000) : null,
-      // individuell ausgehende CTR / CPC
-      outboundCtr: impressions && uoc != null ? uoc / impressions : null,
-      cpoc: uoc ? (spend ?? 0) / uoc : null,
-      // CVR Start = Lead pro individuell ausgehendem Klick (Klick -> Lead)
-      cvrStart: uoc ? total / uoc : null,
-      cpl: spend != null && total ? spend / total : null,
-      cpt: spend != null && tickets ? spend / tickets : null,
-    });
+    rows.push(makeRow({ key: g.key, total, tickets, avgQuality, qualified, spend, impressions, clicks, uoc, active: dm ? dm.active : null }));
+  }
+
+  // Pausierte/aktive FB-Einträge OHNE Leads im Zeitraum ergänzen, damit auch
+  // ausgeschaltete Kampagnen/Anzeigengruppen sichtbar bleiben (grau).
+  // Respektiert die aktive Drill-Down-Filterung (z. B. nur Anzeigengruppen der
+  // gewählten Kampagne).
+  const dm = fb?.dimMeta?.[dimKey] || null;
+  if (dm) {
+    const existing = new Set([...groups.keys()].map((g) => normKey(g)));
+    for (const [k, meta] of Object.entries(dm)) {
+      if (existing.has(k)) continue;
+      // Parent-Filter prüfen (Kampagne/Anzeigengruppe), wenn gesetzt
+      if (filters.campaign && meta.parents?.campaign && normKey(meta.parents.campaign) !== normKey(filters.campaign)) continue;
+      if (filters.adset && meta.parents?.adset && normKey(meta.parents.adset) !== normKey(filters.adset)) continue;
+      const uoc = fb?.uocByDim?.[dimKey]?.[k] ?? meta.uoc ?? null;
+      rows.push(makeRow({ key: meta.name, total: 0, tickets: 0, avgQuality: null, qualified: 0, spend: meta.spend, impressions: meta.impressions, clicks: meta.clicks, uoc, active: meta.active }));
+    }
   }
   return rows;
+}
+
+/** Baut eine Ergebniszeile inkl. abgeleiteter Kennzahlen. */
+function makeRow({ key, total, tickets, avgQuality, qualified, spend, impressions, clicks, uoc, active }) {
+  return {
+    key,
+    active,
+    leads: total,
+    tickets,
+    ticketRate: total ? tickets / total : null,
+    avgQuality,
+    qualified,
+    qualifiedRate: tickets ? qualified / tickets : null,
+    spend,
+    impressions,
+    clicks,
+    outboundClicks: uoc,
+    cpm: impressions ? (spend ?? 0) / (impressions / 1000) : null,
+    outboundCtr: impressions && uoc != null ? uoc / impressions : null,
+    cpoc: uoc ? (spend ?? 0) / uoc : null,
+    cvrStart: uoc ? total / uoc : null,
+    cpl: spend != null && total ? spend / total : null,
+    cpt: spend != null && tickets ? spend / tickets : null,
+  };
 }
 
 export function computeKpis(leads, overviewByAdset, fb) {

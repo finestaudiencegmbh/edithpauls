@@ -35,6 +35,10 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
     const arr = [...rows];
     const { col, dir } = sort;
     arr.sort((a, b) => {
+      // Aktive immer vor pausierten (active === false ans Ende)
+      const ap = a.active === false ? 1 : 0;
+      const bp = b.active === false ? 1 : 0;
+      if (ap !== bp) return ap - bp;
       const av = a[col];
       const bv = b[col];
       if (av == null && bv == null) return 0;
@@ -65,13 +69,15 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
         </thead>
         <tbody>
           {sorted.map((r) => (
-            <tr key={r.key} className="clickable" onClick={() => onSelect?.(r.key)} title="Klicken, um danach zu filtern">
+            <tr key={r.key} className={`clickable ${r.active === false ? 'is-paused' : ''}`} onClick={() => onSelect?.(r.key)} title={r.active === false ? 'Pausiert' : 'Klicken, um danach zu filtern'}>
               {cols.map((c) => (
                 <td key={c.key} className={c.align === 'left' ? 'left' : 'num'} data-label={c.key === 'key' ? '' : c.label}>
                   {c.key === 'key' ? (
                     <div className="cell-name">
                       <span className="bar" style={{ width: `${(r.leads / maxLeads) * 100}%` }} />
+                      {r.active != null && <span className={`status-dot ${r.active ? 'on' : 'off'}`} />}
                       <span className="cell-name-text" title={r.key}>{r.key}</span>
+                      {r.active === false && <span className="paused-tag">pausiert</span>}
                     </div>
                   ) : (
                     c.fmt(r[c.key])

@@ -215,10 +215,40 @@ export function combineMetaWithLeads(meta, leads) {
     add(uocByDim.creative, e.creative);
   }
 
+  // Pro Dimension (campaign/adset/creative): FB-Kennzahlen + Status + Lead-Stats,
+  // damit das Frontend AUCH pausierte Einträge ohne Leads anzeigen kann (grau).
+  const dimMeta = { campaign: {}, adset: {}, creative: {} };
+  const ensure = (dim, name, { active = null, parents = {} } = {}) => {
+    const k = normKey(name);
+    if (!k) return null;
+    if (!dimMeta[dim][k]) {
+      dimMeta[dim][k] = { name, spend: 0, impressions: 0, clicks: 0, uoc: 0, active, parents };
+    }
+    if (active != null) dimMeta[dim][k].active = active;
+    return dimMeta[dim][k];
+  };
+  for (const e of entities) {
+    const cActive = campaignStatus[e.campaign]?.active ?? null;
+    const aActive = adsetStatus[e.adset]?.active ?? null;
+    const buckets = [
+      ensure('campaign', e.campaign, { active: cActive }),
+      ensure('adset', e.adset, { active: aActive, parents: { campaign: e.campaign } }),
+      ensure('creative', e.creative, { active: aActive, parents: { campaign: e.campaign, adset: e.adset } }),
+    ];
+    for (const b of buckets) {
+      if (!b) continue;
+      b.spend += e.spend || 0;
+      b.impressions += e.impressions || 0;
+      b.clicks += e.clicks || 0;
+      b.uoc += e.uniqueOutboundClicks || 0;
+    }
+  }
+
   return {
     hierarchy: result,
     totals,
     uocByDim,
+    dimMeta,
     nonLeadCampaigns: result.filter((c) => !c.leadCampaign).map((c) => ({ name: c.name, objective: c.objective, spend: c.spend })),
     daily: { spend: spendByDay, leads: leadsByDay },
   };

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { fmtEur, fmtInt, fmtPct, fmtScore } from '../lib.js';
 
-export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
+export default function BreakdownTable({ rows, dimLabel, onSelect, tiers, showActiveToggle = true }) {
   const [sort, setSort] = useState({ col: 'leads', dir: 'desc' });
   const [onlyActive, setOnlyActive] = useState(false);
 
@@ -60,11 +60,13 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
   return (
     <div>
       <div className="bt-toolbar">
-        <label className="switch">
-          <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} />
-          <span className="switch-track"><span className="switch-thumb" /></span>
-          <span className="switch-label">Nur aktive anzeigen</span>
-        </label>
+        {showActiveToggle ? (
+          <label className="switch">
+            <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} />
+            <span className="switch-track"><span className="switch-thumb" /></span>
+            <span className="switch-label">Nur aktive anzeigen</span>
+          </label>
+        ) : <span />}
         <span className="muted">{visibleRows.length} {onlyActive ? 'aktive' : 'Einträge'}</span>
       </div>
       <div className="table-wrap">

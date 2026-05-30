@@ -243,7 +243,7 @@ export default function App() {
                         </span>
                       </div>
                     )}
-                    <BreakdownTable rows={organicRows} dimLabel={orgDrill ? 'Unterquelle' : 'Quelle'} onSelect={orgDrill ? undefined : (k) => setOrgDrill(k)} tiers={tiers} />
+                    <BreakdownTable rows={organicRows} dimLabel={orgDrill ? 'Unterquelle' : 'Quelle'} onSelect={orgDrill ? undefined : (k) => setOrgDrill(k)} tiers={tiers} showActiveToggle={false} />
                   </section>
                 )}
               </>

@@ -497,3 +497,110 @@ body {
 .brand-logo { width: 40px; height: 40px; flex-shrink: 0; display: block; }
 
 .charts-stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* ===================================================================== */
+/* ===============   MOBILE OPTIMIERUNG (<= 760px)   ==================== */
+/* ===================================================================== */
+@media (max-width: 760px) {
+  body { font-size: 15px; }
+  .content { padding: 0 14px calc(76px + env(safe-area-inset-bottom)); }
+
+  /* Layout: Sidebar wird zur unteren Tab-Leiste */
+  .layout { flex-direction: column; }
+  .sidebar {
+    position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+    height: auto; width: auto; z-index: 100;
+    flex-direction: row; align-items: stretch; gap: 0;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    border-right: none; border-top: 1px solid var(--line);
+    background: rgba(7,7,12,0.92);
+    overflow: visible;
+  }
+  .brand { display: none; }          /* Logo wandert in die Topbar */
+  .sidebar-foot { display: none; }
+  .nav { flex-direction: row; flex: 1; gap: 2px; }
+  .nav-item {
+    flex-direction: column; gap: 4px; flex: 1;
+    padding: 8px 4px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; text-align: center;
+    justify-content: center;
+  }
+  .nav-item svg { width: 21px; height: 21px; }
+  .nav-item.active { box-shadow: none; background: var(--accent-soft); color: var(--accent-ink); }
+
+  /* Topbar mit Mini-Logo, kompakter */
+  .topbar { margin: 0 -14px 18px; padding: 12px 14px calc(12px + env(safe-area-inset-top)); gap: 10px; }
+  .topbar h1 { font-size: 19px; }
+  .subtitle { font-size: 13px; }
+  .topbar-right { width: 100%; gap: 8px; flex-wrap: wrap; }
+  .dp, .dp-trigger { width: 100%; justify-content: center; }
+  .refresh-btn { flex: 1; justify-content: center; }
+  .updated { display: none; }
+
+  /* Date-Picker als Vollbild-Sheet */
+  .dp-pop { position: fixed; inset: auto 0 0 0; top: 10vh; flex-direction: column; border-radius: 18px 18px 0 0; max-height: 90vh; overflow-y: auto; }
+  .dp-presets { flex-direction: row; flex-wrap: wrap; min-width: auto; max-height: none; border-right: none; border-bottom: 1px solid var(--line); }
+  .dp-preset { flex: 1 1 45%; }
+  .dp-grid { grid-template-columns: repeat(7, 1fr); }
+  .dp-day { width: auto; }
+
+  /* Panels & KPIs */
+  .panel { padding: 16px 14px; border-radius: var(--radius-md); }
+  .panel h2 { font-size: 17px; }
+  .filters { padding: 14px; }
+  .filter input, .filter select { max-width: none; }
+  .reset-btn { margin-left: 0; width: 100%; }
+  .kpi-sections { gap: 28px; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi-card { padding: 14px; border-radius: var(--radius-md); }
+  .kpi-value { font-size: 24px; }
+  .kpi-dist { grid-column: 1 / -1; }
+  .charts-grid { grid-template-columns: 1fr; }
+
+  /* Tabs scrollbar machen statt umbrechen */
+  .tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; max-width: 100%; }
+  .tab { white-space: nowrap; }
+  .tabs-hint { display: none; }
+
+  /* Leads-Tabelle -> Karten */
+  .data-table.leads thead { display: none; }
+  .data-table.leads, .data-table.leads tbody, .data-table.leads tr, .data-table.leads td { display: block; width: 100%; }
+  .data-table.leads tr.clickable {
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+    margin-bottom: 10px; padding: 12px 14px; background: rgba(4,4,9,0.4);
+  }
+  .data-table.leads tr.clickable td { border: none; padding: 4px 0; text-align: right; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .data-table.leads tr.clickable td::before {
+    content: attr(data-label); color: var(--faint); font-size: 12px;
+    font-weight: 600; text-align: left; text-transform: uppercase; letter-spacing: .03em;
+  }
+  .data-table.leads td.left { flex-direction: column; align-items: flex-start; }
+  .data-table.leads td.left::before { display: none; }
+  .data-table.leads td.trunc { max-width: 60%; }
+  .data-table.leads .detail-row { display: block; }
+  .data-table.leads .detail-row td { display: block; padding: 0; }
+  .data-table.leads .detail-row td::before { display: none; }
+  .answers { grid-template-columns: 1fr; gap: 12px; }
+
+  /* Kampagnen-Karten: Sektionen untereinander */
+  .cc-head { padding: 13px 14px; }
+  .cc-name { font-size: 15px; }
+  .cc-metrics { grid-template-columns: 1fr; }
+  .cc-tiles { grid-template-columns: repeat(3, 1fr); }
+  .cc-children { padding: 6px 8px 12px; }
+
+  /* Quellen-Grid einspaltig */
+  .sources-grid { grid-template-columns: 1fr; }
+  .donut-legend { grid-template-columns: 1fr 1fr; }
+}
+
+/* Sehr kleine Geräte */
+@media (max-width: 380px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .cc-tiles { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Logo in der Topbar nur auf Mobil (Desktop hat es in der Sidebar) */
+.topbar-title { display: flex; align-items: center; gap: 12px; }
+.topbar-logo { display: none; }
+@media (max-width: 760px) { .topbar-logo { display: block; width: 34px; height: 34px; flex-shrink: 0; } }

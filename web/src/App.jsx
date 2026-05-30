@@ -103,9 +103,12 @@ export default function App() {
 
       <main className="content">
         <header className="topbar">
-          <div>
-            <h1>{NAV.find((n) => n.key === view)?.label}</h1>
-            <p className="subtitle">Lead- &amp; VIP-Ticket-Dashboard</p>
+          <div className="topbar-title">
+            <img className="topbar-logo" src="/logo.svg" alt="" width="34" height="34" />
+            <div>
+              <h1>{NAV.find((n) => n.key === view)?.label}</h1>
+              <p className="subtitle">Lead- &amp; VIP-Ticket-Dashboard</p>
+            </div>
           </div>
           <div className="topbar-right">
             <DateRangePicker from={range.from} to={range.to} onApply={applyRange} />

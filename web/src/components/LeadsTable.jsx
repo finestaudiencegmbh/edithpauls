@@ -75,18 +75,18 @@ export default function LeadsTable({ leads, tiers }) {
             {sorted.map((l, i) => (
               <React.Fragment key={l.email + i}>
                 <tr className="clickable" onClick={() => setOpen(open === l.email + i ? null : l.email + i)}>
-                  <td className="left">
+                  <td className="left" data-label="Lead">
                     <div className="lead-name">{l.name}</div>
                     <div className="lead-email">{l.email}</div>
                   </td>
-                  <td className="nowrap">{fmtDate(l.wonAt)}</td>
-                  <td><span className={`pill ${l.sourceType}`}>{l.sourceType === 'paid' ? 'Ads' : 'Organisch'}</span></td>
-                  <td className="trunc" title={l.campaign}>{l.campaign}</td>
-                  <td className="trunc" title={l.adset}>{l.adset}</td>
-                  <td className="trunc" title={l.creative}>{l.creative}</td>
-                  <td className="trunc" title={l.placement}>{l.placement}</td>
-                  <td>{l.hasTicket ? <span className="pill vip">VIP</span> : <span className="muted">–</span>}</td>
-                  <td><QualityBadge quality={l.quality} tiers={tiers} /></td>
+                  <td className="nowrap" data-label="Lead am">{fmtDate(l.wonAt)}</td>
+                  <td data-label="Quelle"><span className={`pill ${l.sourceType}`}>{l.sourceType === 'paid' ? 'Ads' : 'Organisch'}</span></td>
+                  <td className="trunc" data-label="Kampagne" title={l.campaign}>{l.campaign}</td>
+                  <td className="trunc" data-label="Anzeigengruppe" title={l.adset}>{l.adset}</td>
+                  <td className="trunc" data-label="Creative" title={l.creative}>{l.creative}</td>
+                  <td className="trunc" data-label="Placement" title={l.placement}>{l.placement}</td>
+                  <td data-label="VIP">{l.hasTicket ? <span className="pill vip">VIP</span> : <span className="muted">–</span>}</td>
+                  <td data-label="Qualität"><QualityBadge quality={l.quality} tiers={tiers} /></td>
                 </tr>
                 {open === l.email + i && l.answers && (
                   <tr className="detail-row">

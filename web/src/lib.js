@@ -95,8 +95,9 @@ function spendForAdsets(adsetNames, overviewByAdset) {
  * Daten (Supermetrics) je Dimension. Fällt darauf zurück: Adspend je
  * Anzeigengruppe aus der Sheet-Übersicht (nur Kampagne/Anzeigengruppe).
  */
-export function aggregate(leads, dimKey, overviewByAdset, fb, filters = {}) {
-  const fbDim = fb?.byDim?.[dimKey] || null;
+export function aggregate(leads, dimKey, overviewByAdset, fb, filters = {}, opts = {}) {
+  const { addFbRows = true } = opts; // FB-only-Zeilen (pausierte/leere Kampagnen) ergänzen?
+  const fbDim = addFbRows ? (fb?.byDim?.[dimKey] || null) : null;
   const groups = new Map();
   for (const l of leads) {
     const k = l[dimKey] || '(unbekannt)';
@@ -117,24 +118,23 @@ export function aggregate(leads, dimKey, overviewByAdset, fb, filters = {}) {
       : null;
     const qualified = ticketLeads.filter((l) => ['A', 'B'].includes(l.quality?.tier)).length;
 
-    const dm = fb?.dimMeta?.[dimKey]?.[normKey(g.key)] || null;
+    const dm = addFbRows ? (fb?.dimMeta?.[dimKey]?.[normKey(g.key)] || null) : null;
     const m = fbDim ? fbDim[normKey(g.key)] : null;
     let spend = m ? m.spend : (dm ? dm.spend : null);
-    if (spend == null && (dimKey === 'adset' || dimKey === 'campaign')) {
+    if (addFbRows && spend == null && (dimKey === 'adset' || dimKey === 'campaign')) {
       spend = spendForAdsets([...g.adsets], overviewByAdset);
     }
     const impressions = (m ? m.impressions : null) ?? (dm ? dm.impressions : null);
     const clicks = (m ? m.clicks : null) ?? (dm ? dm.clicks : null);
-    const uoc = fb?.uocByDim?.[dimKey]?.[normKey(g.key)] ?? (dm ? dm.uoc : null);
+    const uoc = addFbRows ? (fb?.uocByDim?.[dimKey]?.[normKey(g.key)] ?? (dm ? dm.uoc : null)) : null;
 
     rows.push(makeRow({ key: g.key, total, tickets, avgQuality, qualified, spend, impressions, clicks, uoc, active: dm ? dm.active : null }));
   }
 
   // Pausierte/aktive FB-Einträge OHNE Leads im Zeitraum ergänzen, damit auch
   // ausgeschaltete Kampagnen/Anzeigengruppen sichtbar bleiben (grau).
-  // Respektiert die aktive Drill-Down-Filterung (z. B. nur Anzeigengruppen der
-  // gewählten Kampagne).
-  const dm = fb?.dimMeta?.[dimKey] || null;
+  // Nur im Paid-Container (addFbRows). Respektiert die Drill-Down-Filterung.
+  const dm = addFbRows ? (fb?.dimMeta?.[dimKey] || null) : null;
   if (dm) {
     const existing = new Set([...groups.keys()].map((g) => normKey(g)));
     for (const [k, meta] of Object.entries(dm)) {

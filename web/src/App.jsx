@@ -91,9 +91,13 @@ export default function App() {
 
   const organicRows = useMemo(() => {
     if (!data) return [];
-    const leads = drillLeads.filter((l) => l.sourceType !== 'paid');
-    return aggregate(leads, tab, data.overviewByAdset, fb, drill);
-  }, [data, drillLeads, tab, fb, drill]);
+    // Organisch nach echter Quelle (sourceRaw: instagram, manychat, fb-bio …)
+    // gruppieren – unabhängig vom Paid-Tab. Keine Meta-Daten (addFbRows:false).
+    const leads = filtered
+      .filter((l) => l.sourceType !== 'paid')
+      .map((l) => ({ ...l, _src: l.sourceRaw || '(direkt)' }));
+    return aggregate(leads, '_src', data.overviewByAdset, fb, {}, { addFbRows: false });
+  }, [data, filtered, fb]);
 
   // Drill-Down: Klick auf eine Zeile zoomt eine Ebene tiefer (lokaler Pfad).
   const DRILL_ORDER = ['campaign', 'adset', 'creative', 'placement'];
@@ -223,8 +227,8 @@ export default function App() {
 
                 {organicRows.length > 0 && (
                   <section className="panel">
-                    <div className="panel-head"><div><h2>Organisch</h2><span className="panel-sub">Leads ohne Ad-Kosten (Instagram, Bio, ManyChat, Newsletter …)</span></div></div>
-                    <BreakdownTable rows={organicRows} dimLabel={DIMENSIONS.find((d) => d.key === tab).label} onSelect={selectDim} tiers={tiers} />
+                    <div className="panel-head"><div><h2>Organisch</h2><span className="panel-sub">Leads ohne Ad-Kosten, nach Quelle (Instagram, ManyChat, Bio, Newsletter …)</span></div></div>
+                    <BreakdownTable rows={organicRows} dimLabel="Quelle" tiers={tiers} />
                   </section>
                 )}
               </>

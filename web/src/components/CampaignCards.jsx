@@ -71,9 +71,10 @@ export default function CampaignCards({ hierarchy }) {
   return (
     <div>
       <div className="table-toolbar">
-        <label className="filter checkbox" style={{ paddingBottom: 0 }}>
+        <label className="switch">
           <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} />
-          <span>Nur aktive anzeigen</span>
+          <span className="switch-track"><span className="switch-thumb" /></span>
+          <span className="switch-label">Nur aktive anzeigen</span>
         </label>
         <span className="muted">{campaigns.length} Kampagnen</span>
       </div>
@@ -99,7 +100,7 @@ export default function CampaignCards({ hierarchy }) {
                   {adsets.map((a) => {
                     const aId = `${c.id}/${a.id}`;
                     const aOpen = open.has(aId);
-                    const ads = a.ads || [];
+                    const ads = (a.ads || []).filter((ad) => !onlyActive || ad.active !== false);
                     return (
                       <div key={aId} className="cc-sub">
                         <button className="cc-subhead" onClick={() => toggle(aId)}>
@@ -129,8 +130,12 @@ export default function CampaignCards({ hierarchy }) {
                                   <span>CTR ausg.</span>
                                 </div>
                                 {ads.map((ad) => (
-                                  <div key={ad.id} className="cc-ad">
-                                    <span className="cc-ad-name" title={ad.name}>{ad.name}</span>
+                                  <div key={ad.id} className={`cc-ad ${ad.active === false ? 'is-paused' : ''}`}>
+                                    <span className="cc-ad-name" title={ad.name}>
+                                      {ad.active != null && <span className={`status-dot ${ad.active ? 'on' : 'off'}`} />}
+                                      {ad.name}
+                                      {ad.active === false && <span className="paused-tag">aus</span>}
+                                    </span>
                                     <span>{fmtEur(ad.spend)}</span>
                                     <span>{leadHidden ? '–' : fmtInt(ad.leads)}</span>
                                     <span>{leadHidden ? '–' : fmtEur(ad.cpl)}</span>

@@ -58,7 +58,7 @@ const round2 = (n) => (n == null ? null : Math.round(n * 100) / 100);
  * @param {array}  leads  Lead-Records aus buildDataset (mit campaign/adset/creative, wonAt, hasTicket)
  */
 export function combineMetaWithLeads(meta, leads) {
-  const { entities = [], daily = [], campaignStatus = {}, adsetStatus = {} } = meta || {};
+  const { entities = [], daily = [], campaignStatus = {}, adsetStatus = {}, adStatus = {} } = meta || {};
   const campCfg = loadCampaignConfig();
 
   // Lead-/Ticket-/Qualitäts-Zähler je Dimension (über normalisierte UTM-Namen)
@@ -127,7 +127,8 @@ export function combineMetaWithLeads(meta, leads) {
       scored: adLeads.scored,
       qualified: adLeads.qualified,
     };
-    a.ads.push({ id: e.adId, name: e.creative, level: 'ad', ...derive(adM) });
+    const adActive = adStatus[e.creative]?.active ?? null;
+    a.ads.push({ id: e.adId, name: e.creative, level: 'ad', active: adActive, ...derive(adM) });
 
     // FB-Summen nach oben aggregieren
     for (const node of [a._m, c._m]) {
@@ -230,10 +231,11 @@ export function combineMetaWithLeads(meta, leads) {
   for (const e of entities) {
     const cActive = campaignStatus[e.campaign]?.active ?? null;
     const aActive = adsetStatus[e.adset]?.active ?? null;
+    const adActive = adStatus[e.creative]?.active ?? aActive; // echter Ad-Status, sonst von Anzeigengruppe
     const buckets = [
       ensure('campaign', e.campaign, { active: cActive }),
       ensure('adset', e.adset, { active: aActive, parents: { campaign: e.campaign } }),
-      ensure('creative', e.creative, { active: aActive, parents: { campaign: e.campaign, adset: e.adset } }),
+      ensure('creative', e.creative, { active: adActive, parents: { campaign: e.campaign, adset: e.adset } }),
     ];
     for (const b of buckets) {
       if (!b) continue;

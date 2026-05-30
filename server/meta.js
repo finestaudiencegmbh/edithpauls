@@ -168,13 +168,16 @@ async function fetchDaily(c, range) {
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
-/** effective_status + objective (Ziel) je Kampagne, effective_status je Anzeigengruppe. */
+/** effective_status je Kampagne (+objective), Anzeigengruppe und Werbeanzeige. */
 async function fetchStatus(c) {
   const camps = await graphGet(
     `${GRAPH}/${c.version}/${c.account}/campaigns?fields=name,effective_status,objective&limit=500&access_token=${c.token}`
   );
   const adsets = await graphGet(
     `${GRAPH}/${c.version}/${c.account}/adsets?fields=name,effective_status,campaign_id&limit=500&access_token=${c.token}`
+  );
+  const ads = await graphGet(
+    `${GRAPH}/${c.version}/${c.account}/ads?fields=name,effective_status&limit=500&access_token=${c.token}`
   );
   const isActive = (s) => s === 'ACTIVE';
   const campaignStatus = {};
@@ -187,7 +190,9 @@ async function fetchStatus(c) {
   }
   const adsetStatus = {};
   for (const x of adsets) adsetStatus[String(x.name).trim()] = { status: x.effective_status, active: isActive(x.effective_status) };
-  return { campaignStatus, adsetStatus };
+  const adStatus = {};
+  for (const x of ads) adStatus[String(x.name).trim()] = { status: x.effective_status, active: isActive(x.effective_status) };
+  return { campaignStatus, adsetStatus, adStatus };
 }
 
 /** Holt alle Meta-Daten in einem Rutsch. Optional mit explizitem Zeitraum. */

@@ -666,3 +666,15 @@ body {
 .cell-name .status-dot { margin: 0 8px 0 2px; }
 
 .bt-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+
+/* ---- Toggle-Switch (Slider) ---- */
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: 14px; color: var(--ink); }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch-track { width: 42px; height: 24px; border-radius: 999px; background: rgba(255,255,255,0.12); border: 1px solid var(--line-strong); position: relative; transition: background .18s ease, border-color .18s ease; flex-shrink: 0; }
+.switch-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform .18s ease, background .18s ease; }
+.switch input:checked + .switch-track { background: linear-gradient(135deg, var(--accent-2), var(--accent-deep)); border-color: transparent; }
+.switch input:checked + .switch-track .switch-thumb { transform: translateX(18px); background: #1a1505; }
+.switch input:focus-visible + .switch-track { box-shadow: 0 0 0 3px var(--accent-soft); }
+.switch-label { font-weight: 500; }
+.cc-ad.is-paused { opacity: .55; }
+.cc-ad.is-paused .cc-ad-name { color: var(--muted); }

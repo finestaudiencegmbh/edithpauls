@@ -60,15 +60,14 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
 
   return (
     <div>
-      {hasPaused && (
-        <div className="bt-toolbar">
-          <label className="filter checkbox" style={{ paddingBottom: 0 }}>
-            <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} />
-            <span>Nur aktive anzeigen</span>
-          </label>
-          <span className="muted">{visibleRows.length} {onlyActive ? 'aktive' : 'Einträge'}</span>
-        </div>
-      )}
+      <div className="bt-toolbar">
+        <label className="switch">
+          <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} />
+          <span className="switch-track"><span className="switch-thumb" /></span>
+          <span className="switch-label">Nur aktive anzeigen</span>
+        </label>
+        <span className="muted">{visibleRows.length} {onlyActive ? 'aktive' : 'Einträge'}</span>
+      </div>
       <div className="table-wrap">
       <table className="data-table">
         <thead>

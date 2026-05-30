@@ -3,6 +3,10 @@ import { fmtEur, fmtInt, fmtPct, fmtScore } from '../lib.js';
 
 export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
   const [sort, setSort] = useState({ col: 'leads', dir: 'desc' });
+  const [onlyActive, setOnlyActive] = useState(false);
+
+  const hasPaused = rows.some((r) => r.active === false);
+  const visibleRows = onlyActive ? rows.filter((r) => r.active !== false) : rows;
 
   const hasSpend = rows.some((r) => r.spend != null);
   const hasImpressions = rows.some((r) => r.impressions != null);
@@ -32,7 +36,7 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
   }, [dimLabel, hasSpend, hasImpressions, hasOutbound]);
 
   const sorted = useMemo(() => {
-    const arr = [...rows];
+    const arr = [...visibleRows];
     const { col, dir } = sort;
     arr.sort((a, b) => {
       // Aktive immer vor pausierten (active === false ans Ende)
@@ -48,14 +52,24 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
       return dir === 'asc' ? cmp : -cmp;
     });
     return arr;
-  }, [rows, sort]);
+  }, [visibleRows, sort]);
 
-  const maxLeads = Math.max(1, ...rows.map((r) => r.leads));
+  const maxLeads = Math.max(1, ...visibleRows.map((r) => r.leads));
 
   const onSort = (col) => setSort((s) => ({ col, dir: s.col === col && s.dir === 'desc' ? 'asc' : 'desc' }));
 
   return (
-    <div className="table-wrap">
+    <div>
+      {hasPaused && (
+        <div className="bt-toolbar">
+          <label className="filter checkbox" style={{ paddingBottom: 0 }}>
+            <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} />
+            <span>Nur aktive anzeigen</span>
+          </label>
+          <span className="muted">{visibleRows.length} {onlyActive ? 'aktive' : 'Einträge'}</span>
+        </div>
+      )}
+      <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
@@ -91,6 +105,7 @@ export default function BreakdownTable({ rows, dimLabel, onSelect, tiers }) {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

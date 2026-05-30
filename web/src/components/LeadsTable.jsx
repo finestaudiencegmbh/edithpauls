@@ -72,20 +72,22 @@ export default function LeadsTable({ leads, tiers }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((l, i) => (
+            {sorted.map((l, i) => {
+              const isOpen = open === l.email + i;
+              return (
               <React.Fragment key={l.email + i}>
-                <tr className="clickable" onClick={() => setOpen(open === l.email + i ? null : l.email + i)}>
-                  <td className="left" data-label="Lead">
+                <tr className={`clickable ${isOpen ? 'expanded' : ''}`} onClick={() => setOpen(isOpen ? null : l.email + i)}>
+                  <td className="left lead-main" data-label="Lead">
                     <div className="lead-name">{l.name}</div>
                     <div className="lead-email">{l.email}</div>
                   </td>
-                  <td className="nowrap" data-label="Lead am">{fmtDate(l.wonAt)}</td>
+                  <td className="nowrap sec" data-label="Lead am">{fmtDate(l.wonAt)}</td>
                   <td data-label="Quelle"><span className={`pill ${l.sourceType}`}>{l.sourceType === 'paid' ? 'Ads' : 'Organisch'}</span></td>
-                  <td className="trunc" data-label="Kampagne" title={l.campaign}>{l.campaign}</td>
-                  <td className="trunc" data-label="Anzeigengruppe" title={l.adset}>{l.adset}</td>
-                  <td className="trunc" data-label="Creative" title={l.creative}>{l.creative}</td>
-                  <td className="trunc" data-label="Placement" title={l.placement}>{l.placement}</td>
-                  <td data-label="VIP">{l.hasTicket ? <span className="pill vip">VIP</span> : <span className="muted">–</span>}</td>
+                  <td className="trunc sec" data-label="Kampagne" title={l.campaign}>{l.campaign}</td>
+                  <td className="trunc sec" data-label="Anzeigengruppe" title={l.adset}>{l.adset}</td>
+                  <td className="trunc sec" data-label="Creative" title={l.creative}>{l.creative}</td>
+                  <td className="trunc sec" data-label="Placement" title={l.placement}>{l.placement}</td>
+                  <td className="sec" data-label="VIP">{l.hasTicket ? <span className="pill vip">VIP</span> : <span className="muted">–</span>}</td>
                   <td data-label="Qualität"><QualityBadge quality={l.quality} tiers={tiers} /></td>
                 </tr>
                 {open === l.email + i && l.answers && (
@@ -115,7 +117,8 @@ export default function LeadsTable({ leads, tiers }) {
                   </tr>
                 )}
               </React.Fragment>
-            ))}
+              );
+            })}
             {sorted.length === 0 && <tr><td colSpan={COLS.length} className="empty">Keine Leads für die aktuelle Auswahl.</td></tr>}
           </tbody>
         </table>

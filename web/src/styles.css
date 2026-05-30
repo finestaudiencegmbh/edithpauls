@@ -703,3 +703,50 @@ body {
 .chat-input textarea { flex: 1; resize: none; max-height: 120px; font-family: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: rgba(4,4,9,0.6); color: var(--ink); }
 .chat-input textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .chat-input .refresh-btn { padding: 10px 16px; }
+
+/* ---- Topbar-Badges (FB live / DEMO) ---- */
+.topbar-badges { display: inline-flex; gap: 8px; align-items: center; margin-left: auto; }
+
+/* ===================================================================== */
+/* ===========   MOBILE FEINSCHLIFF (iPhone, <= 820px)   =============== */
+/* ===================================================================== */
+@media (max-width: 820px) {
+  /* Titelzeile: Logo + Titel links, Badges oben rechts */
+  .topbar-title { width: 100%; align-items: flex-start; }
+  .topbar-badges { margin-left: auto; align-self: flex-start; }
+  .fb-badge, .demo-badge { font-size: 12px; padding: 5px 11px; }
+
+  /* Picker volle Breite, Aktualisieren-Button daneben — kein Verschieben mehr */
+  .topbar-right { width: 100%; display: flex; gap: 10px; }
+  .dp { flex: 1; }
+  .dp-trigger { width: 100%; }
+  .refresh-btn { flex: 0 0 auto; }
+
+  /* KPI-Karten: EINSPALTIG, groß */
+  .kpi-grid { grid-template-columns: 1fr !important; gap: 12px; }
+  .kpi-card { padding: 20px; }
+  .kpi-value { font-size: 32px; }
+  .kpi-label { font-size: 15px; }
+  .kpi-sub { font-size: 13px; }
+  .kpi-dist { grid-column: 1 / -1; }
+
+  /* Graphen: höher + Touch */
+  .chart-svg { min-height: 220px; touch-action: pan-y; }
+
+  /* ---- Leadliste: einklappbare Karten ---- */
+  /* Sekundärfelder standardmäßig ausgeblendet, nur Name + Quelle + Qualität */
+  .data-table.leads tr.clickable .sec { display: none; }
+  .data-table.leads tr.clickable.expanded .sec { display: flex; }
+  .data-table.leads tr.clickable { position: relative; padding: 16px 18px; }
+  .data-table.leads .lead-main { padding-right: 26px; }
+  .data-table.leads .lead-name { font-size: 17px; }
+  .data-table.leads .lead-email { font-size: 13px; }
+  /* Chevron-Indikator oben rechts */
+  .data-table.leads tr.clickable::after {
+    content: "▸"; position: absolute; top: 16px; right: 16px;
+    color: var(--muted); font-size: 13px; transition: transform .15s ease;
+  }
+  .data-table.leads tr.clickable.expanded::after { transform: rotate(90deg); }
+  /* erste Zeile (Name) volle Breite, kein data-label */
+  .data-table.leads td.left::before { display: none; }
+}

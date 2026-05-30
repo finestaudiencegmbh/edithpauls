@@ -39,9 +39,9 @@ export default function TimeChart({ title, series, formatY = (v) => v, height = 
 
   const xAt = (i) => pad.l + (dates.length <= 1 ? plotW / 2 : (i / (dates.length - 1)) * plotW);
   const yTicks = 4;
-  const onMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const px = ((e.clientX - rect.left) / rect.width) * w;
+  const pick = (clientX, currentTarget) => {
+    const rect = currentTarget.getBoundingClientRect();
+    const px = ((clientX - rect.left) / rect.width) * w;
     let best = 0;
     let bestD = Infinity;
     dates.forEach((_, i) => {
@@ -49,6 +49,10 @@ export default function TimeChart({ title, series, formatY = (v) => v, height = 
       if (d < bestD) { bestD = d; best = i; }
     });
     setHover(best);
+  };
+  const onMove = (e) => pick(e.clientX, e.currentTarget);
+  const onTouch = (e) => {
+    if (e.touches && e.touches[0]) { pick(e.touches[0].clientX, e.currentTarget); }
   };
 
   return (
@@ -62,7 +66,7 @@ export default function TimeChart({ title, series, formatY = (v) => v, height = 
         </div>
       </div>
       <div className="chart-wrap">
-        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="chart-svg" onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="chart-svg" onMouseMove={onMove} onMouseLeave={() => setHover(null)} onTouchStart={onTouch} onTouchMove={onTouch} style={{ touchAction: 'pan-y' }}>
           {/* horizontale Gitterlinien + Y-Beschriftung */}
           {Array.from({ length: yTicks + 1 }).map((_, i) => {
             const val = (maxY / yTicks) * i;

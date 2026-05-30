@@ -148,11 +148,13 @@ export default function App() {
               <h1>{NAV.find((n) => n.key === view)?.label}</h1>
               <p className="subtitle">Lead- &amp; VIP-Ticket-Dashboard</p>
             </div>
+            <div className="topbar-badges">
+              {data?.source === 'demo' && <span className="demo-badge" title="Es werden synthetische Beispieldaten angezeigt.">DEMO</span>}
+              {hasFb && <span className="fb-badge" title={`Facebook-Daten via ${fb.provider === 'meta' ? 'Meta' : 'Supermetrics'} · ${fb.rows} Zeilen`}>FB live</span>}
+            </div>
           </div>
           <div className="topbar-right">
             <DateRangePicker from={range.from} to={range.to} onApply={applyRange} />
-            {data?.source === 'demo' && <span className="demo-badge" title="Es werden synthetische Beispieldaten angezeigt.">DEMO-Daten</span>}
-            {hasFb && <span className="fb-badge" title={`Facebook-Daten via ${fb.provider === 'meta' ? 'Meta' : 'Supermetrics'} · ${fb.rows} Zeilen`}>FB live</span>}
             <button className="refresh-btn" onClick={() => load(true)} disabled={loading}>
               <svg className={`btn-icon ${loading ? 'spin' : ''}`} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" />

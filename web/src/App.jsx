@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchData } from './api.js';
-import { applyFilters, aggregate, computeKpis, tierDistribution, leadsByDay, DIMENSIONS, fmtDate } from './lib.js';
+import { applyFilters, aggregate, computeKpis, tierDistribution, leadsByDay, cplByDay, DIMENSIONS, fmtDate } from './lib.js';
 import Kpis from './components/Kpis.jsx';
 import Filters from './components/Filters.jsx';
 import BreakdownTable from './components/BreakdownTable.jsx';
@@ -60,6 +60,7 @@ export default function App() {
   const kpis = useMemo(() => (data ? computeKpis(filtered, data.overviewByAdset, fb) : null), [data, filtered, fb]);
   const dist = useMemo(() => (data ? tierDistribution(filtered, tiers) : {}), [data, filtered, tiers]);
   const leadDaily = useMemo(() => (data ? leadsByDay(filtered) : []), [data, filtered]);
+  const cplDaily = useMemo(() => ((hasFb && fb.daily) ? cplByDay(fb.daily.spend, filtered) : []), [hasFb, fb, filtered]);
 
   const rows = useMemo(
     () => (data ? aggregate(filtered, tab, data.overviewByAdset, fb) : []),
@@ -140,17 +141,21 @@ export default function App() {
 
             {view === 'dashboard' && (
               <>
-                {/* Graphen oben */}
+                {/* Graphen oben: Leads & Tickets breit, darunter Spend + CPL nebeneinander */}
                 <section className="panel">
-                  <div className="panel-head"><div><h2>Verlauf</h2><span className="panel-sub">Ad-Spend (Facebook) &amp; Leads/Tickets (Sheet) pro Tag · Maus zum Anzeigen</span></div></div>
-                  <div className="charts-grid">
-                    <TimeChart title="Ad-Spend pro Tag" formatY={(v) => fmtEur(Math.round(v))}
-                      series={[{ key: 'spend', label: 'Ad-Spend', color: '#d0bb5a', data: (hasFb && fb.daily ? fb.daily.spend : []).map((d) => ({ date: d.date, value: d.spend })) }]} />
+                  <div className="panel-head"><div><h2>Verlauf</h2><span className="panel-sub">Leads/Tickets (Sheet) &amp; Ad-Spend/CPL (Facebook) pro Tag · Maus zum Anzeigen</span></div></div>
+                  <div className="charts-stack">
                     <TimeChart title="Leads &amp; Tickets pro Tag" formatY={(v) => fmtInt(Math.round(v))}
                       series={[
                         { key: 'leads', label: 'Leads', color: '#5ec8d8', data: leadDaily.map((d) => ({ date: d.date, value: d.leads })) },
                         { key: 'tickets', label: 'VIP-Tickets', color: '#6fcf97', data: leadDaily.map((d) => ({ date: d.date, value: d.tickets })) },
                       ]} />
+                    <div className="charts-grid">
+                      <TimeChart title="Ad-Spend pro Tag" formatY={(v) => fmtEur(Math.round(v))}
+                        series={[{ key: 'spend', label: 'Ad-Spend', color: '#d0bb5a', data: (hasFb && fb.daily ? fb.daily.spend : []).map((d) => ({ date: d.date, value: d.spend })) }]} />
+                      <TimeChart title="CPL pro Tag" formatY={(v) => fmtEur(Math.round(v))}
+                        series={[{ key: 'cpl', label: 'CPL (Ads)', color: '#a78bfa', data: cplDaily.map((d) => ({ date: d.date, value: d.value })) }]} />
+                    </div>
                   </div>
                 </section>
 

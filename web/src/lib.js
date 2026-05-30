@@ -210,6 +210,25 @@ export function leadsByDay(leads) {
   return [...m.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
+/**
+ * CPL pro Tag = Ad-Spend (FB) ÷ bezahlte Leads (Sheet) je Tag.
+ * spendDaily: [{date, spend}] aus fb.daily.spend; leads: gefilterte Leads.
+ */
+export function cplByDay(spendDaily, leads) {
+  const paidPerDay = new Map();
+  for (const l of leads) {
+    if (l.sourceType !== 'paid') continue;
+    const day = (l.wonAt || '').slice(0, 10);
+    if (!day) continue;
+    paidPerDay.set(day, (paidPerDay.get(day) || 0) + 1);
+  }
+  return (spendDaily || [])
+    .map((d) => {
+      const n = paidPerDay.get(d.date) || 0;
+      return { date: d.date, value: n ? d.spend / n : null };
+    });
+}
+
 export function tierDistribution(leads, tiers) {
   const dist = {};
   for (const t of tiers) dist[t.key] = 0;

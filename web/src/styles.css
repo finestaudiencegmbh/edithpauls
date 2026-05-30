@@ -495,3 +495,5 @@ body {
 @media (max-width: 760px) { .cc-sub-meta { display: none; } }
 
 .brand-logo { width: 40px; height: 40px; flex-shrink: 0; display: block; }
+
+.charts-stack { display: flex; flex-direction: column; gap: 16px; }

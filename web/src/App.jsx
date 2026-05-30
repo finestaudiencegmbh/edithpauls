@@ -81,7 +81,7 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">F&amp;M</div>
+          <img className="brand-logo" src="/logo.svg" alt="MoneyMaker" width="40" height="40" />
           <div className="brand-text">
             <div className="brand-title">MoneyMaker</div>
             <div className="brand-sub">Workshop · 15.–18.06.</div>

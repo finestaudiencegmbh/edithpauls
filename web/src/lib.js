@@ -14,6 +14,18 @@ export const fmtDate = (iso) => {
   return Number.isNaN(d.getTime()) ? '–' : d.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
+// Tagesschlüssel in Europe/Berlin (Sheet-Zeitstempel sind UTC). Damit fällt ein
+// Lead von z. B. 23:30 Berliner Zeit auf den richtigen Tag und nicht per UTC
+// auf den Vortag.
+const berlinDayFmt = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
+});
+export const dayKey = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : berlinDayFmt.format(d); // YYYY-MM-DD
+};
+
 // ---- Filterung -------------------------------------------------------------
 export const DIMENSIONS = [
   { key: 'campaign', label: 'Kampagne' },

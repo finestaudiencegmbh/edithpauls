@@ -55,7 +55,7 @@ export function applyFilters(leads, f) {
     // Datumsbereich: konsistent mit dem Server. Bei gesetztem Zeitraum werden
     // Leads ohne gültiges Datum ausgeschlossen.
     if (f.from || f.to) {
-      const day = (l.wonAt || '').slice(0, 10);
+      const day = dayKey(l.wonAt);
       if (!day) return false;
       if (f.from && day < f.from) return false;
       if (f.to && day > f.to) return false;
@@ -200,7 +200,7 @@ export function computeKpis(leads, overviewByAdset, fb) {
 export function leadsByDay(leads) {
   const m = new Map();
   for (const l of leads) {
-    const day = (l.wonAt || '').slice(0, 10);
+    const day = dayKey(l.wonAt);
     if (!day) continue;
     if (!m.has(day)) m.set(day, { date: day, leads: 0, tickets: 0 });
     const e = m.get(day);
@@ -218,7 +218,7 @@ export function cplByDay(spendDaily, leads) {
   const paidPerDay = new Map();
   for (const l of leads) {
     if (l.sourceType !== 'paid') continue;
-    const day = (l.wonAt || '').slice(0, 10);
+    const day = dayKey(l.wonAt);
     if (!day) continue;
     paidPerDay.set(day, (paidPerDay.get(day) || 0) + 1);
   }

@@ -78,10 +78,22 @@ export default function App() {
     );
   }, [data, filtered, drill]);
 
-  const rows = useMemo(
-    () => (data ? aggregate(drillLeads, tab, data.overviewByAdset, fb, drill) : []),
-    [data, drillLeads, tab, fb, drill]
-  );
+  const UNATTRIB = '(Paid · nicht zuordenbar)';
+  const ORGANIC = '(organisch)';
+
+  // Zwei getrennte Container: bezahlt (Meta) und organisch. Nicht zuordenbare
+  // Paid-Leads werden ausgeblendet (verwirren in der Aufschlüsselung).
+  const paidRows = useMemo(() => {
+    if (!data) return [];
+    const leads = drillLeads.filter((l) => l.sourceType === 'paid' && l.campaign !== UNATTRIB);
+    return aggregate(leads, tab, data.overviewByAdset, fb, drill);
+  }, [data, drillLeads, tab, fb, drill]);
+
+  const organicRows = useMemo(() => {
+    if (!data) return [];
+    const leads = drillLeads.filter((l) => l.sourceType !== 'paid');
+    return aggregate(leads, tab, data.overviewByAdset, fb, drill);
+  }, [data, drillLeads, tab, fb, drill]);
 
   // Drill-Down: Klick auf eine Zeile zoomt eine Ebene tiefer (lokaler Pfad).
   const DRILL_ORDER = ['campaign', 'adset', 'creative', 'placement'];
@@ -182,7 +194,7 @@ export default function App() {
                 <Kpis kpis={kpis} dist={dist} tiers={tiers} />
 
                 <section className="panel">
-                  <div className="panel-head"><div><h2>Performance nach Ebene</h2><span className="panel-sub">Kampagnen, Anzeigengruppen, Creatives und Placements</span></div></div>
+                  <div className="panel-head"><div><h2>Bezahlt · Meta</h2><span className="panel-sub">Performance nach Kampagne, Anzeigengruppe, Creative und Placement</span></div></div>
                   <div className="tabs-row">
                     <div className="tabs">
                       {DIMENSIONS.map((d) => (
@@ -206,8 +218,15 @@ export default function App() {
                   {!hasFb && (tab === 'creative' || tab === 'placement') && (
                     <div className="info-note">Adspend ist je Anzeigengruppe im Sheet hinterlegt – auf Creative-/Placement-Ebene über die Facebook-Anbindung.</div>
                   )}
-                  <BreakdownTable rows={rows} dimLabel={DIMENSIONS.find((d) => d.key === tab).label} onSelect={selectDim} tiers={tiers} />
+                  <BreakdownTable rows={paidRows} dimLabel={DIMENSIONS.find((d) => d.key === tab).label} onSelect={selectDim} tiers={tiers} />
                 </section>
+
+                {organicRows.length > 0 && (
+                  <section className="panel">
+                    <div className="panel-head"><div><h2>Organisch</h2><span className="panel-sub">Leads ohne Ad-Kosten (Instagram, Bio, ManyChat, Newsletter …)</span></div></div>
+                    <BreakdownTable rows={organicRows} dimLabel={DIMENSIONS.find((d) => d.key === tab).label} onSelect={selectDim} tiers={tiers} />
+                  </section>
+                )}
               </>
             )}
 

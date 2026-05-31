@@ -18,7 +18,16 @@
 
 import { loadCampaignConfig, isLeadCampaign } from './campaigns.js';
 
-const normKey = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+// Normalisiert Namen fürs Matching FB <-> Sheet: vereinheitlicht Bindestriche
+// (– — −  ->  -), entfernt "Kopie"/"Copy"-Suffixe (Sheet hat oft "… – Kopie",
+// FB nicht) und kollabiert Whitespace.
+const normKey = (s) =>
+  String(s ?? '')
+    .replace(/[‐-―−]/g, '-')        // diverse Bindestriche -> "-"
+    .replace(/[\s-]*\b(kopie|copy)\b\s*\d*$/i, '')  // "– Kopie", "- Copy 2" am Ende weg
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 
 function emptyMetrics() {
   return { spend: 0, impressions: 0, clicks: 0, uoc: 0, leads: 0, tickets: 0, scoreSum: 0, scored: 0, qualified: 0 };

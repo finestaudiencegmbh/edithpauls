@@ -74,7 +74,15 @@ export function applyFilters(leads, f) {
 }
 
 // ---- Aggregation -----------------------------------------------------------
-const normKey = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+// Matching FB <-> Sheet: Bindestrich-Varianten vereinheitlichen, "Kopie"/"Copy"-
+// Suffix entfernen (Sheet hat oft "… – Kopie", FB nicht), Whitespace kollabieren.
+const normKey = (s) =>
+  String(s ?? '')
+    .replace(/[‐-―−]/g, '-')
+    .replace(/[\s-]*\b(kopie|copy)\b\s*\d*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 
 function spendForAdsets(adsetNames, overviewByAdset) {
   let sum = 0;

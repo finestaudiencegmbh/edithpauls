@@ -35,7 +35,7 @@ function Metrics({ n, leadHidden, features = {}, ticketLabel = {} }) {
       ],
     },
     {
-      title: 'Qualität & Funnel', cls: 'g-quality',
+      title: hasQuality ? 'Qualität & Funnel' : 'Funnel', cls: 'g-quality',
       items: [
         ...(hasQuality ? [['Quali-Rate', lead(fmtPct(n.qualifiedRate))], ['Ø Quali', lead(fmtScore(n.avgQuality))]] : []),
         ['CVR Start', lead(fmtPct(n.cvrStart))],

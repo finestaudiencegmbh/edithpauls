@@ -200,14 +200,25 @@ function OverlayChart({ series }) {
             <text key={i} x={x(i)} y={h - 8} className="chart-axis" textAnchor="middle">{fmtDay(dates[i])}</text>
           ))}
         </svg>
-        {hover != null && (
-          <div className="chart-tooltip" style={{ left: `${(x(hover) / w) * 100}%` }}>
+        {hover != null && (() => {
+          const frac = x(hover) / w;
+          // Randabhängig ausrichten, damit der Tooltip nicht abgeschnitten wird
+          const align = frac > 0.7 ? 'right' : frac < 0.3 ? 'left' : 'center';
+          const left = align === 'right' ? 'auto' : align === 'left' ? `${frac * 100}%` : `${frac * 100}%`;
+          const style = align === 'right'
+            ? { right: `${(1 - frac) * 100}%`, transform: 'translateX(0)' }
+            : align === 'left'
+            ? { left, transform: 'translateX(0)' }
+            : { left, transform: 'translateX(-50%)' };
+          return (
+          <div className="chart-tooltip" style={style}>
             <div className="tt-date">{fmtDay(dates[hover])}</div>
             {prepared.map((s) => (
               <div key={s.key} className="tt-row"><span className="legend-dot" style={{ background: s.color }} />{s.label}: <strong>{s.pts[hover] ? s.fmt(s.pts[hover].v) : '–'}</strong></div>
             ))}
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

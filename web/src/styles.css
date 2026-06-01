@@ -10,7 +10,9 @@
   --faint: #6c6a5c;
   --line: rgba(208, 187, 90, 0.12);
   --line-strong: rgba(208, 187, 90, 0.26);
-  --accent: #d0bb5a;
+  /* Akzentfarbe: Startwert für den ersten Frame. Zur Laufzeit setzt App.jsx
+     --accent aus project.config.json (branding.accent). */
+  --accent: #cb997e;
   --accent-2: #e3d088;
   --accent-deep: #b89c3e;
   --accent-hover: #e3d088;

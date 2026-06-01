@@ -57,6 +57,26 @@ export default function App() {
   const tiers = data?.scoring?.tiers || [];
   const fb = data?.fb || null;
   const hasFb = Boolean(fb?.byDim);
+
+  // Projekt-Branding + Feature-Flags (aus der Server-Config über das Payload)
+  const project = data?.project || null;
+  const features = project?.features || { hasTickets: true, hasQuality: true };
+  const ticketLabel = project?.ticketLabel || { singular: 'VIP-Ticket', plural: 'VIP-Tickets' };
+  const accent = project?.branding?.accent || '#d0bb5a';
+  const logo = project?.branding?.logo || '/logo.svg';
+  const brandTitle = project?.shortName || 'Dashboard';
+  const brandSub = project?.subtitle || '';
+
+  // Akzentfarbe als CSS-Variable + Seitentitel zur Laufzeit setzen
+  useEffect(() => {
+    if (accent) document.documentElement.style.setProperty('--accent', accent);
+  }, [accent]);
+  useEffect(() => {
+    if (project?.name) {
+      const suffix = features.hasTickets ? `Lead- & ${ticketLabel.plural}-Dashboard` : 'Lead-Dashboard';
+      document.title = `${brandTitle} · ${suffix}`;
+    }
+  }, [project?.name, features.hasTickets, brandTitle, ticketLabel.plural]);
   const filtered = useMemo(() => (data ? applyFilters(data.leads, filters) : []), [data, filters]);
   const kpis = useMemo(() => (data ? computeKpis(filtered, data.overviewByAdset, fb) : null), [data, filtered, fb]);
   const dist = useMemo(() => (data ? tierDistribution(filtered, tiers) : {}), [data, filtered, tiers]);
@@ -121,10 +141,10 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-logo" src="/logo.svg" alt="MoneyMaker" width="40" height="40" />
+          <img className="brand-logo" src={logo} alt={brandTitle} width="40" height="40" />
           <div className="brand-text">
-            <div className="brand-title">MoneyMaker</div>
-            <div className="brand-sub">Workshop · 15.–18.06.</div>
+            <div className="brand-title">{brandTitle}</div>
+            {brandSub && <div className="brand-sub">{brandSub}</div>}
           </div>
         </div>
         <nav className="nav">
@@ -143,10 +163,10 @@ export default function App() {
       <main className="content">
         <header className="topbar">
           <div className="topbar-title">
-            <img className="topbar-logo" src="/logo.svg" alt="" width="34" height="34" />
+            <img className="topbar-logo" src={logo} alt="" width="34" height="34" />
             <div>
               <h1>{NAV.find((n) => n.key === view)?.label}</h1>
-              <p className="subtitle">Lead- &amp; VIP-Ticket-Dashboard</p>
+              <p className="subtitle">{features.hasTickets ? `Lead- & ${ticketLabel.plural}-Dashboard` : 'Lead-Dashboard'}</p>
             </div>
             <div className="topbar-badges">
               {data?.source === 'demo' && <span className="demo-badge" title="Es werden synthetische Beispieldaten angezeigt.">DEMO</span>}
@@ -181,7 +201,7 @@ export default function App() {
 
         {data && (
           <>
-            <Filters leads={data.leads} filters={filters} setFilters={setFilters} tiers={tiers} onReset={() => setFilters({ ...EMPTY_FILTERS, from: range.from, to: range.to })} />
+            <Filters leads={data.leads} filters={filters} setFilters={setFilters} tiers={tiers} features={features} onReset={() => setFilters({ ...EMPTY_FILTERS, from: range.from, to: range.to })} />
 
             {view === 'dashboard' && (
               <>
@@ -189,14 +209,14 @@ export default function App() {
                 <section className="panel">
                   <div className="panel-head"><div><h2>Verlauf</h2><span className="panel-sub">Leads/Tickets (Sheet) &amp; Ad-Spend/CPL (Facebook) pro Tag · Maus zum Anzeigen</span></div></div>
                   <div className="charts-stack">
-                    <TimeChart title="Leads &amp; Tickets pro Tag" formatY={(v) => fmtInt(Math.round(v))}
+                    <TimeChart title={features.hasTickets ? `Leads & ${ticketLabel.plural} pro Tag` : 'Leads pro Tag'} formatY={(v) => fmtInt(Math.round(v))}
                       series={[
                         { key: 'leads', label: 'Leads', color: '#5ec8d8', data: leadDaily.map((d) => ({ date: d.date, value: d.leads })) },
-                        { key: 'tickets', label: 'VIP-Tickets', color: '#6fcf97', data: leadDaily.map((d) => ({ date: d.date, value: d.tickets })) },
+                        ...(features.hasTickets ? [{ key: 'tickets', label: ticketLabel.plural, color: '#6fcf97', data: leadDaily.map((d) => ({ date: d.date, value: d.tickets })) }] : []),
                       ]} />
                     <div className="charts-grid">
                       <TimeChart title="Ad-Spend pro Tag" formatY={(v) => fmtEur(Math.round(v))}
-                        series={[{ key: 'spend', label: 'Ad-Spend', color: '#d0bb5a', data: (hasFb && fb.daily ? fb.daily.spend : []).map((d) => ({ date: d.date, value: d.spend })) }]} />
+                        series={[{ key: 'spend', label: 'Ad-Spend', color: accent, data: (hasFb && fb.daily ? fb.daily.spend : []).map((d) => ({ date: d.date, value: d.spend })) }]} />
                       <TimeChart title="CPL pro Tag" formatY={(v) => fmtEur(Math.round(v))}
                         series={[{ key: 'cpl', label: 'CPL (Ads)', color: '#a78bfa', data: cplDaily.map((d) => ({ date: d.date, value: d.value })) }]} />
                     </div>
@@ -204,7 +224,7 @@ export default function App() {
                 </section>
 
                 {/* KPI-Boxen darunter */}
-                <Kpis kpis={kpis} dist={dist} tiers={tiers} />
+                <Kpis kpis={kpis} dist={dist} tiers={tiers} features={features} accent={accent} ticketLabel={ticketLabel} />
 
                 <section className="panel">
                   <div className="panel-head"><div><h2>Bezahlt · Meta</h2><span className="panel-sub">Performance nach Kampagne, Anzeigengruppe, Creative und Placement</span></div></div>
@@ -231,7 +251,7 @@ export default function App() {
                   {!hasFb && (tab === 'creative' || tab === 'placement') && (
                     <div className="info-note">Adspend ist je Anzeigengruppe im Sheet hinterlegt – auf Creative-/Placement-Ebene über die Facebook-Anbindung.</div>
                   )}
-                  <BreakdownTable rows={paidRows} dimLabel={DIMENSIONS.find((d) => d.key === tab).label} onSelect={selectDim} tiers={tiers} />
+                  <BreakdownTable rows={paidRows} dimLabel={DIMENSIONS.find((d) => d.key === tab).label} onSelect={selectDim} tiers={tiers} features={features} ticketLabel={ticketLabel} />
                 </section>
 
                 {organicRows.length > 0 && (
@@ -245,7 +265,7 @@ export default function App() {
                         </span>
                       </div>
                     )}
-                    <BreakdownTable rows={organicRows} dimLabel={orgDrill ? 'Unterquelle' : 'Quelle'} onSelect={orgDrill ? undefined : (k) => setOrgDrill(k)} tiers={tiers} showActiveToggle={false} />
+                    <BreakdownTable rows={organicRows} dimLabel={orgDrill ? 'Unterquelle' : 'Quelle'} onSelect={orgDrill ? undefined : (k) => setOrgDrill(k)} tiers={tiers} features={features} ticketLabel={ticketLabel} showActiveToggle={false} />
                   </section>
                 )}
               </>
@@ -255,7 +275,7 @@ export default function App() {
               hasFb && fb.hierarchy ? (
                 <section className="panel">
                   <div className="panel-head"><div><h2>Kampagnen-Aufschlüsselung</h2><span className="panel-sub">Kampagne → Anzeigengruppe → Creative · Facebook-Kennzahlen + Lead-Attribution</span></div></div>
-                  <CampaignCards hierarchy={fb.hierarchy} dailyByEntity={fb.dailyByEntity} />
+                  <CampaignCards hierarchy={fb.hierarchy} dailyByEntity={fb.dailyByEntity} features={features} accent={accent} ticketLabel={ticketLabel} />
                 </section>
               ) : (
                 <section className="panel">
@@ -268,14 +288,16 @@ export default function App() {
             {view === 'leads' && (
               <section className="panel">
                 <div className="panel-head"><div><h2>Alle Leads</h2><span className="panel-sub">Zeile anklicken für Details &amp; Fragebogen-Antworten</span></div></div>
-                <LeadsTable leads={filtered} tiers={tiers} />
+                <LeadsTable leads={filtered} tiers={tiers} features={features} ticketLabel={ticketLabel} />
               </section>
             )}
 
             {view === 'sources' && <SourcesView leads={filtered} />}
 
             <footer className="footer">
-              {data.counts.leads} Leads · {data.counts.paidLeads} bezahlt · {data.counts.tickets} VIP-Tickets · {data.counts.scored} bewertet
+              {data.counts.leads} Leads · {data.counts.paidLeads} bezahlt
+              {features.hasTickets && ` · ${data.counts.tickets} ${ticketLabel.plural}`}
+              {features.hasQuality && ` · ${data.counts.scored} bewertet`}
               {' · '}Quelle: {data.source === 'google' ? 'Google Sheet (live)' : 'Demo'}
             </footer>
           </>

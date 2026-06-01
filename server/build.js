@@ -1,5 +1,6 @@
 import { computeQuality } from './scoring.js';
 import { loadCampaignConfig } from './campaigns.js';
+import { DEFAULT_PROJECT } from './project.js';
 
 const collapse = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 
@@ -72,8 +73,9 @@ function isPaid(utm, paidAdsets, patterns) {
  * Führt Leads, VIP-Tickets und Adspend-Übersicht zu einem einheitlichen
  * Datensatz zusammen. Join über die E-Mail-Adresse.
  */
-export function buildDataset({ leads, tickets, overview }, cfg) {
+export function buildDataset({ leads, tickets, overview }, cfg, project = DEFAULT_PROJECT) {
   const warnings = [];
+  const { hasTickets = true, hasQuality = true } = project.features || {};
   const paidAdsets = new Set(overview.map((o) => o.adset.toLowerCase()));
   const campCfg = loadCampaignConfig();
   const organicPatterns = campCfg.organicPatterns || ['manychat', 'bio'];
@@ -104,8 +106,9 @@ export function buildDataset({ leads, tickets, overview }, cfg) {
       phone: t?.phone || '',
       wonAt: l.wonAt,
       // hasTicket pro Zeile zuverlässig aus der "VIP-Ticket geholt am"-Spalte
+      // (nur wenn das Projekt überhaupt Tickets kennt – sonst immer false).
       ticketAt: l.ticketAt || null,
-      hasTicket: Boolean(l.ticketAt),
+      hasTicket: hasTickets && Boolean(l.ticketAt),
       utm: collapse(l.utm.source) ? { ...l.utm } : (t ? { ...t.utm } : { ...l.utm }),
       answers: t?.answers || null,
     });
@@ -124,7 +127,7 @@ export function buildDataset({ leads, tickets, overview }, cfg) {
       phone: t.phone || '',
       wonAt: t.at || null,
       ticketAt: t.at || null,
-      hasTicket: true,
+      hasTicket: hasTickets,
       utm: { ...t.utm },
       answers: t.answers || null,
     });
@@ -134,7 +137,8 @@ export function buildDataset({ leads, tickets, overview }, cfg) {
   const records = [];
   for (const r of recs) {
     const paid = isPaid(r.utm, paidAdsets, organicPatterns);
-    const quality = r.hasTicket ? computeQuality(r.answers, cfg) : null;
+    // Qualität nur wenn das Projekt ein Fragebogen-/Scoring-System hat.
+    const quality = hasQuality ? computeQuality(r.answers, cfg) : null;
 
     // Dimensions-Labels je nach Quelle/Zuordenbarkeit:
     // - organisch: alles unter einem Sammel-Label zusammenfassen

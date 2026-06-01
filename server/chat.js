@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { loadProjectConfig } from './project.js';
 
 /**
  * KI-Chatbot für das Dashboard. Beantwortet inhaltsbezogene Fragen anhand der
@@ -17,6 +18,8 @@ const MODEL = 'claude-opus-4-8';
 /** Verdichtet das Dashboard-Payload zu einem kompakten, anonymen Kontext. */
 export function buildContext(payload, filtered) {
   const round = (n) => (n == null ? null : Math.round(n * 100) / 100);
+  const project = loadProjectConfig();
+  const { hasTickets = true, hasQuality = true } = project.features || {};
   const leads = filtered || payload.leads || [];
 
   const paid = leads.filter((l) => l.sourceType === 'paid');
@@ -34,35 +37,41 @@ export function buildContext(payload, filtered) {
     const m = new Map();
     for (const l of leads) {
       const k = l[key] || '(unbekannt)';
-      if (!m.has(k)) m.set(k, { name: k, leads: 0, tickets: 0, qualified: 0 });
+      if (!m.has(k)) m.set(k, { name: k, leads: 0 });
       const e = m.get(k);
       e.leads += 1;
-      if (l.hasTicket) e.tickets += 1;
-      if (['A', 'B'].includes(l.quality?.tier)) e.qualified += 1;
+      if (hasTickets && l.hasTicket) e.tickets = (e.tickets || 0) + 1;
+      if (hasQuality && ['A', 'B'].includes(l.quality?.tier)) e.qualified = (e.qualified || 0) + 1;
     }
     return [...m.values()].sort((a, b) => b.leads - a.leads).slice(0, 25);
   };
 
   const fb = payload.fb || {};
+  const summe = {
+    leads_gesamt: leads.length,
+    leads_bezahlt: paid.length,
+    leads_organisch: organic.length,
+    ad_spend_gesamt: round(fb.totals?.spend ?? null),
+    ad_spend_lead_kampagnen: round(fb.totals?.leadSpend ?? null),
+    ad_spend_traffic: round(fb.totals?.nonLeadSpend ?? null),
+    impressionen: fb.totals?.impressions ?? null,
+    cpl: fb.totals?.leadSpend && paid.length ? round(fb.totals.leadSpend / paid.length) : null,
+  };
+  if (hasTickets) {
+    summe.vip_tickets = tickets.length;
+    summe.kosten_pro_ticket = fb.totals?.leadSpend && tickets.length ? round(fb.totals.leadSpend / tickets.length) : null;
+  }
+  if (hasQuality) {
+    summe.qualifizierte_tickets = qualified.length;
+    summe.quali_rate = tickets.length ? round(qualified.length / tickets.length) : null;
+  }
+
   const ctx = {
     zeitraum: payload.range || 'Maximum (gesamter Zeitraum)',
     stand: payload.fetchedAt,
     quelle: payload.source,
-    summe: {
-      leads_gesamt: leads.length,
-      leads_bezahlt: paid.length,
-      leads_organisch: organic.length,
-      vip_tickets: tickets.length,
-      qualifizierte_tickets: qualified.length,
-      quali_rate: tickets.length ? round(qualified.length / tickets.length) : null,
-      ad_spend_gesamt: round(fb.totals?.spend ?? null),
-      ad_spend_lead_kampagnen: round(fb.totals?.leadSpend ?? null),
-      ad_spend_traffic: round(fb.totals?.nonLeadSpend ?? null),
-      impressionen: fb.totals?.impressions ?? null,
-      cpl: fb.totals?.leadSpend && paid.length ? round(fb.totals.leadSpend / paid.length) : null,
-      kosten_pro_ticket: fb.totals?.leadSpend && tickets.length ? round(fb.totals.leadSpend / tickets.length) : null,
-    },
-    qualitaets_verteilung_tickets: tierDist,
+    summe,
+    ...(hasQuality ? { qualitaets_verteilung_tickets: tierDist } : {}),
     je_kampagne: byDim('campaign'),
     je_anzeigengruppe: byDim('adset'),
     je_creative: byDim('creative'),
@@ -76,16 +85,13 @@ export function buildContext(payload, filtered) {
     email: l.email,
     telefon: l.phone,
     lead_am: l.wonAt,
-    vip_am: l.ticketAt,
     quelle: l.sourceType,
     kampagne: l.campaign,
     anzeigengruppe: l.adset,
     creative: l.creative,
     placement: l.placement,
-    vip_ticket: l.hasTicket,
-    quali_score: l.quality?.score ?? null,
-    quali_tier: l.quality?.tier ?? null,
-    antworten: l.answers || null,
+    ...(hasTickets ? { vip_am: l.ticketAt, vip_ticket: l.hasTicket } : {}),
+    ...(hasQuality ? { quali_score: l.quality?.score ?? null, quali_tier: l.quality?.tier ?? null, antworten: l.answers || null } : {}),
   }));
   if (leads.length > MAX_LEAD_ROWS) {
     ctx.leads_hinweis = `Nur die ersten ${MAX_LEAD_ROWS} von ${leads.length} Leads sind einzeln enthalten; die Summen oben decken alle ab.`;
@@ -95,27 +101,41 @@ export function buildContext(payload, filtered) {
   if (Array.isArray(fb.hierarchy)) {
     ctx.facebook_kampagnen = fb.hierarchy.slice(0, 25).map((c) => ({
       name: c.name, aktiv: c.active, traffic: c.leadCampaign === false,
-      spend: round(c.spend), leads: c.leads, tickets: c.tickets,
-      cpl: round(c.cpl), cpt: round(c.cpt), quali_rate: round(c.qualifiedRate),
+      spend: round(c.spend), leads: c.leads,
+      cpl: round(c.cpl),
+      ...(hasTickets ? { tickets: c.tickets, cpt: round(c.cpt) } : {}),
+      ...(hasQuality ? { quali_rate: round(c.qualifiedRate) } : {}),
       cpm: round(c.cpm), ausg_ctr: round(c.outboundCtr), ausg_cpc: round(c.cpoc),
     }));
   }
   return ctx;
 }
 
-const SYSTEM_PROMPT = `Du bist der Analyse-Assistent im Lead-Dashboard für den "Fuat & Marta MoneyMaker"-Workshop.
-Du beantwortest Fragen zu Werbe-Performance und Lead-Qualität auf Basis der dir gelieferten, bereits aggregierten Kennzahlen.
-
-Regeln:
-- Antworte kurz, präzise und auf Deutsch. Nutze konkrete Zahlen aus dem Kontext.
-- Rechne bei Bedarf abgeleitete Werte (z. B. Verhältnisse) sauber aus den vorhandenen Zahlen.
-- Beträge in Euro mit € und Tausenderpunkt; Raten in Prozent.
-- Wenn eine Zahl nicht im Kontext steht, sag das klar – erfinde nichts.
-- Der Kontext bezieht sich auf den aktuell im Dashboard gewählten Zeitraum/Filter.
-- Lead-Qualität: Tier A/B = qualifiziert; basiert v. a. auf Einkommen (Haushaltsregel: <3.500 € + Partner = schwach).
-- Dir liegen auch die einzelnen Leads inkl. Name, E-Mail, Telefon und Fragebogen-Antworten vor (internes Tool). Du darfst daraus konkrete Personen nennen, Listen erstellen (z. B. "alle qualifizierten Leads aus Kampagne X") und Kontaktdaten ausgeben, wenn danach gefragt wird.
-- Das Feld 'leads' enthält ggf. nur die ersten N Datensätze (siehe leads_hinweis); für Gesamtzahlen nutze die Summen/Verdichtungen.
-- Formatiere Vergleiche/Ranglisten/Lead-Listen als kurze Aufzählung oder Tabelle, wenn es hilft.`;
+/** Baut den System-Prompt abhängig von den aktiven Features des Projekts. */
+function buildSystemPrompt(project) {
+  const { hasTickets = true, hasQuality = true } = project.features || {};
+  const themen = ['Werbe-Performance', hasQuality && 'Lead-Qualität'].filter(Boolean).join(' und ');
+  const lines = [
+    `Du bist der Analyse-Assistent im Lead-Dashboard für "${project.name}".`,
+    `Du beantwortest Fragen zu ${themen} auf Basis der dir gelieferten, bereits aggregierten Kennzahlen.`,
+    '',
+    'Regeln:',
+    '- Antworte kurz, präzise und auf Deutsch. Nutze konkrete Zahlen aus dem Kontext.',
+    '- Rechne bei Bedarf abgeleitete Werte (z. B. Verhältnisse) sauber aus den vorhandenen Zahlen.',
+    '- Beträge in Euro mit € und Tausenderpunkt; Raten in Prozent.',
+    '- Wenn eine Zahl nicht im Kontext steht, sag das klar – erfinde nichts.',
+    '- Der Kontext bezieht sich auf den aktuell im Dashboard gewählten Zeitraum/Filter.',
+  ];
+  if (hasQuality) {
+    lines.push('- Lead-Qualität: Tier A/B = qualifiziert; basiert v. a. auf Einkommen (Haushaltsregel: <3.500 € + Partner = schwach).');
+  }
+  lines.push(
+    `- Dir liegen auch die einzelnen Leads inkl. Name, E-Mail, Telefon${hasQuality ? ' und Fragebogen-Antworten' : ''} vor (internes Tool). Du darfst daraus konkrete Personen nennen, Listen erstellen und Kontaktdaten ausgeben, wenn danach gefragt wird.`,
+    "- Das Feld 'leads' enthält ggf. nur die ersten N Datensätze (siehe leads_hinweis); für Gesamtzahlen nutze die Summen/Verdichtungen.",
+    '- Formatiere Vergleiche/Ranglisten/Lead-Listen als kurze Aufzählung oder Tabelle, wenn es hilft.'
+  );
+  return lines.join('\n');
+}
 
 /**
  * Beantwortet eine Chat-Nachricht. messages = [{role, content}], history-fähig.
@@ -128,7 +148,7 @@ export async function chat({ messages, context }) {
   const client = new Anthropic();
 
   const system = [
-    { type: 'text', text: SYSTEM_PROMPT },
+    { type: 'text', text: buildSystemPrompt(loadProjectConfig()) },
     {
       type: 'text',
       // Kontext als eigener Block, gecacht – stabil über die Konversation

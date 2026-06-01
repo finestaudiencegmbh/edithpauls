@@ -11,7 +11,7 @@ import { fmtEur, fmtEur2, fmtInt, fmtPct, fmtScore } from '../lib.js';
 // KPI-Katalog: value() leitet den Tageswert aus einem Datenpunkt ab,
 // total() den Periodenwert aus den Roh-Summen (für die Legende).
 const KPIS = [
-  { key: 'leads', label: 'Leads', color: '#d0bb5a', fmt: fmtInt,
+  { key: 'leads', label: 'Leads', accent: true, color: '#d0bb5a', fmt: fmtInt,
     value: (p) => p.leads,
     total: (t) => t.leads },
   { key: 'spend', label: 'Adspend', color: '#9db4e8', fmt: fmtEur,
@@ -20,10 +20,10 @@ const KPIS = [
   { key: 'cpl', label: 'CPL (€/Lead)', color: '#5ad0c0', fmt: fmtEur2,
     value: (p) => (p.leads ? p.spend / p.leads : null),
     total: (t) => (t.leads ? t.spend / t.leads : null) },
-  { key: 'cpt', label: 'Kosten/Ticket', color: '#f2b705', fmt: fmtEur2,
+  { key: 'cpt', label: 'Kosten/Ticket', feature: 'hasTickets', color: '#f2b705', fmt: fmtEur2,
     value: (p) => (p.tickets ? p.spend / p.tickets : null),
     total: (t) => (t.tickets ? t.spend / t.tickets : null) },
-  { key: 'quality', label: 'Lead-Qualität', color: '#6dd47e', fmt: fmtScore,
+  { key: 'quality', label: 'Lead-Qualität', feature: 'hasQuality', color: '#6dd47e', fmt: fmtScore,
     value: (p) => p.quality,
     total: (t) => (t.qLeads ? Math.round(t.qSum / t.qLeads) : null) },
   { key: 'cpm', label: 'CPM', color: '#7c9cff', fmt: fmtEur2,
@@ -40,7 +40,13 @@ const KPIS = [
 const PLATFORM_COLORS = ['#4267B2', '#E1306C', '#0a84ff', '#25D366', '#ff7849', '#9b59b6'];
 const platformLabel = (p) => ({ facebook: 'Facebook', instagram: 'Instagram', audience_network: 'Audience Network', messenger: 'Messenger', whatsapp: 'WhatsApp', unknown: 'Unbekannt' }[p] || (p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Unbekannt'));
 
-export default function GraphPanel({ title, levelLabel, series, onClose }) {
+export default function GraphPanel({ title, levelLabel, series, features = {}, accent = '#d0bb5a', onClose }) {
+  // Nur die KPIs anzeigen, die zu den aktiven Projekt-Features passen.
+  const kpis = useMemo(
+    () => KPIS.filter((k) => !k.feature || features[k.feature] !== false)
+      .map((k) => (k.accent ? { ...k, color: accent } : k)),
+    [features, accent]
+  );
   // Standard: Leads + CPL überlagert
   const [active, setActive] = useState(() => new Set(['leads', 'cpl']));
   const [showPlatforms, setShowPlatforms] = useState(false);
@@ -69,7 +75,7 @@ export default function GraphPanel({ title, levelLabel, series, onClose }) {
   // Aktive Serien zusammenbauen (KPIs + ggf. Plattform-Spend)
   const chartSeries = useMemo(() => {
     const out = [];
-    KPIS.forEach((k) => {
+    kpis.forEach((k) => {
       if (!active.has(k.key)) return;
       out.push({
         key: k.key, label: k.label, color: k.color, fmt: k.fmt,
@@ -87,7 +93,7 @@ export default function GraphPanel({ title, levelLabel, series, onClose }) {
       });
     }
     return out;
-  }, [active, showPlatforms, platforms, series, totals]);
+  }, [active, showPlatforms, platforms, series, totals, kpis]);
 
   return (
     <div className="graph-overlay" onClick={onClose}>
@@ -101,7 +107,7 @@ export default function GraphPanel({ title, levelLabel, series, onClose }) {
         </div>
 
         <div className="graph-kpis">
-          {KPIS.map((k) => (
+          {kpis.map((k) => (
             <button key={k.key} className={`kpi-chip ${active.has(k.key) ? 'on' : ''}`} onClick={() => toggle(k.key)} style={active.has(k.key) ? { borderColor: k.color, color: k.color } : undefined}>
               <span className="kpi-dot" style={{ background: k.color }} />{k.label}
             </button>

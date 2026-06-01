@@ -13,10 +13,12 @@ import { isSupermetricsConfigured, fetchFbInsights, aggregateFb } from './superm
 import { isMetaConfigured, fetchMetaAll } from './meta.js';
 import { combineMetaWithLeads } from './combine.js';
 import { isChatConfigured, buildContext, chat } from './chat.js';
+import { loadProjectConfig, publicProject } from './project.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const PORT = process.env.PORT || 3000;
+const PROJECT = loadProjectConfig();
 // Standard 15 Min: Ansehen/Tab-Wechsel/erneutes Öffnen kommt aus dem Cache und
 // kostet keine Meta-Calls (schont das API-Rate-Limit). Der „Aktualisieren"-
 // Button (refresh=1) umgeht den Cache und holt immer frische Daten.
@@ -39,7 +41,7 @@ if (AUTH_USER && AUTH_PASS) {
       const [u, p] = Buffer.from(encoded, 'base64').toString().split(':');
       if (u === AUTH_USER && p === AUTH_PASS) return next();
     }
-    res.set('WWW-Authenticate', 'Basic realm="MMV Dashboard"');
+    res.set('WWW-Authenticate', `Basic realm="${PROJECT.shortName || 'Dashboard'}"`);
     return res.status(401).send('Authentifizierung erforderlich.');
   });
 }
@@ -58,13 +60,13 @@ async function loadDataset({ refresh = false, from = '', to = '' } = {}) {
   let source;
   if (isConfigured()) {
     const sheets = await fetchAllSheets();
-    parsed = parseSheets(sheets);
+    parsed = parseSheets(sheets, PROJECT);
     source = 'google';
   } else {
     parsed = getSampleParsed();
     source = 'demo';
   }
-  const dataset = buildDataset(parsed, cfg);
+  const dataset = buildDataset(parsed, cfg, PROJECT);
 
   // Facebook-Ads-Daten: bevorzugt direkt über die Meta Marketing API,
   // alternativ über Supermetrics. Fehler hier dürfen das Sheet-Dashboard
@@ -100,6 +102,7 @@ async function loadDataset({ refresh = false, from = '', to = '' } = {}) {
     source,
     fetchedAt: new Date().toISOString(),
     range: range || null,
+    project: publicProject(PROJECT),
     scoring: { weights: cfg.weights, tiers: cfg.tiers },
     fb,
     ...dataset,
@@ -174,12 +177,12 @@ if (fs.existsSync(distDir)) {
   app.get('/', (req, res) =>
     res
       .type('html')
-      .send('<h1>MMV Dashboard – API läuft</h1><p>Frontend noch nicht gebaut. Im Dev: <code>npm run dev</code> und <a href="http://localhost:5173">localhost:5173</a> öffnen. Für Production: <code>npm run serve</code>.</p>')
+      .send(`<h1>${PROJECT.name} – API läuft</h1><p>Frontend noch nicht gebaut. Im Dev: <code>npm run dev</code> und <a href="http://localhost:5173">localhost:5173</a> öffnen. Für Production: <code>npm run serve</code>.</p>`)
   );
 }
 
 app.listen(PORT, () => {
   const mode = isConfigured() ? 'Google Sheets (live)' : 'DEMO (synthetische Daten)';
-  console.log(`\n  MMV Dashboard-Server läuft auf  http://localhost:${PORT}`);
+  console.log(`\n  ${PROJECT.name} – Server läuft auf  http://localhost:${PORT}`);
   console.log(`  Datenquelle: ${mode}\n`);
 });

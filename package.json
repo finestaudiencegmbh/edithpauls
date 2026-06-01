@@ -1,9 +1,9 @@
 {
-  "name": "mmv-fuatmarta-dashboard",
+  "name": "lead-campaign-dashboard",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Lead- & VIP-Ticket-Dashboard für den Fuat & Marta MoneyMaker-Workshop. Liest live aus dem Google Tracking Sheet und wertet Leads nach Kampagne, Anzeigengruppe, Creative, Placement und Lead-Qualität aus.",
+  "description": "Generisches Lead-/Kampagnen-Dashboard. Liest live aus einem Google Tracking Sheet und wertet Leads nach Kampagne, Anzeigengruppe, Creative und Placement aus. Optionale Ticket- und Lead-Qualitäts-Features pro Projekt via config/project.config.json. Konkretes Projekt: siehe project.config.json.",
   "engines": {
     "node": ">=18.17"
   },

@@ -1,10 +1,17 @@
-# Fuat & Marta · MoneyMaker-Workshop — Lead- & VIP-Ticket-Dashboard
+# Lead- & Kampagnen-Dashboard
 
-Eine lokale Web-App, die das Google-Tracking-Sheet **live ausliest** und auswertet:
+Eine Web-App, die ein Google-Tracking-Sheet **live ausliest** und auswertet:
 wie viele Leads jede **Kampagne**, **Anzeigengruppe**, jedes **Creative** und
-**Placement** gebracht hat – inklusive **Lead-Qualität**, abgeleitet aus den
-Antworten beim VIP-Ticket. Sortier- und filterbar, mit CSV-Export. Kein
+**Placement** gebracht hat. Sortier- und filterbar, mit CSV-Export. Kein
 manuelles Übertragen ins Sheet mehr nötig.
+
+> **Generisch & wiederverwendbar.** Ein neues Projekt entsteht nur durch
+> Konfiguration in `config/project.config.json` (Name, Branding, Feature-Flags,
+> Sheet-Mapping) – siehe **[TEMPLATE.md](./TEMPLATE.md)**. Optionale Features pro
+> Projekt: **Ticket-Logik** (`hasTickets`) und **Lead-Qualität/Fragebogen**
+> (`hasQuality`). Sind sie aus, verschwinden alle zugehörigen KPIs/Spalten sauber.
+>
+> Das aktuell konfigurierte Projekt steht in `config/project.config.json`.
 
 > Die App kann **gehostet** (teilbare URL mit Passwort) oder **lokal** laufen.
 > Weil personenbezogene Daten (Namen, E-Mails, Telefonnummern) enthalten sind,

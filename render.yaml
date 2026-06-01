@@ -4,7 +4,7 @@
 
 services:
   - type: web
-    name: lead-campaign-dashboard
+    name: edith-pauls-dashboard
     runtime: node
     plan: free
     # devDependencies (vite) werden für den Build gebraucht -> explizit mitinstallieren

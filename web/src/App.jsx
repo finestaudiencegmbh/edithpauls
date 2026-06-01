@@ -109,6 +109,8 @@ export default function App() {
   }, [filteredClosings, data, kpis]);
   const dist = useMemo(() => (data ? tierDistribution(filtered, tiers) : {}), [data, filtered, tiers]);
   const leadDaily = useMemo(() => (data ? leadsByDay(filtered) : []), [data, filtered]);
+  // Termine pro Tag (nach Eintrags-/Lead-Datum, gleiche Achse wie die Leads)
+  const termineDaily = useMemo(() => (data ? leadsByDay(filteredTermine) : []), [data, filteredTermine]);
   const cplDaily = useMemo(() => ((hasFb && fb.daily) ? cplByDay(fb.daily.spend, filtered) : []), [hasFb, fb, filtered]);
 
   // Drill-Pfad NUR für "Performance nach Ebene" – getrennt von den globalen
@@ -237,10 +239,11 @@ export default function App() {
                 <section className="panel">
                   <div className="panel-head"><div><h2>Verlauf</h2><span className="panel-sub">Leads/Tickets (Sheet) &amp; Ad-Spend/CPL (Facebook) pro Tag · Maus zum Anzeigen</span></div></div>
                   <div className="charts-stack">
-                    <TimeChart title={features.hasTickets ? `Leads & ${ticketLabel.plural} pro Tag` : 'Leads pro Tag'} formatY={(v) => fmtInt(Math.round(v))}
+                    <TimeChart title={`${features.hasTickets ? `Leads & ${ticketLabel.plural}` : 'Leads'}${termineKpis.has ? ' & Termine' : ''} pro Tag`} formatY={(v) => fmtInt(Math.round(v))}
                       series={[
                         { key: 'leads', label: 'Leads', color: '#5ec8d8', data: leadDaily.map((d) => ({ date: d.date, value: d.leads })) },
                         ...(features.hasTickets ? [{ key: 'tickets', label: ticketLabel.plural, color: '#6fcf97', data: leadDaily.map((d) => ({ date: d.date, value: d.tickets })) }] : []),
+                        ...(termineKpis.has ? [{ key: 'termine', label: 'Termine', color: '#a78bfa', data: termineDaily.map((d) => ({ date: d.date, value: d.leads })) }] : []),
                       ]} />
                     <div className="charts-grid">
                       <TimeChart title="Ad-Spend pro Tag" formatY={(v) => fmtEur(Math.round(v))}

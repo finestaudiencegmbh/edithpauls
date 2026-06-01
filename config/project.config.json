@@ -23,6 +23,36 @@
     "plural": "VIP-Tickets"
   },
 
+  "_comment_sheet": "Tabellen-Erkennung + Spalten-Mapping dieses Sheets ('KPIs Webinar B2C_Edith Pauls'). Schlüssel normalisiert: kleingeschrieben, ohne ? : ., Mehrfach-Leerzeichen kollabiert. overview = Creative-Übersicht (Adspend je Creative), leads = Leads-Tab. detect.all müssen alle vorhanden sein, detect.any mindestens eines (grenzt Leads sauber gegen Termine/Closings/Teilnehmer/Watchtime ab).",
+  "sheet": {
+    "overview": {
+      "detect": { "all": ["adspend"], "any": ["creative", "anzeigengruppe"] },
+      "fields": {
+        "key": ["creative", "anzeigengruppe"],
+        "status": ["status"],
+        "adspend": ["adspend"],
+        "clicks": ["ausg klicks"],
+        "cpc": ["cpc"],
+        "cvrStart": ["cvr start"],
+        "leads": ["leads"]
+      }
+    },
+    "leads": {
+      "detect": { "all": ["datum", "name"], "any": ["leads aus ads", "a/b variante"] },
+      "fields": {
+        "at": ["datum"],
+        "firstName": ["name"],
+        "lastName": [],
+        "email": ["e-mail"],
+        "utmSource": ["utm source"],
+        "utmMedium": ["utm medium"],
+        "utmCampaign": ["utm campaign"],
+        "utmTerm": [],
+        "ticketColumn": []
+      }
+    }
+  },
+
   "questionnaire": {
     "_comment": "Mapping der Sheet-Spalten des Fragebogen-/Ticket-Tabs auf die internen Felder (nur relevant wenn hasTickets/hasQuality=true). Schlüssel sind normalisiert: kleingeschrieben, ohne ? : . – mehrere Varianten je Feld möglich (erste nicht-leere gewinnt). Die Antworten-Schlüssel (income, invested, realEstate, employment …) entsprechen den in scoring.json verwendeten Dimensionen.",
     "detect": {

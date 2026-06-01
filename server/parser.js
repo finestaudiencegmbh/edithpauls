@@ -20,20 +20,27 @@ const key = (s) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/**
+ * Prüft eine normalisierte Spalten-Menge gegen eine detect-Definition
+ * { all: [...], any: [...] }: alle 'all'-Spalten müssen vorhanden sein UND –
+ * falls 'any' gesetzt ist – mindestens eine davon.
+ */
+function matchDetect(set, detect) {
+  if (!detect) return false;
+  const all = detect.all || [];
+  const any = detect.any || [];
+  if (all.length === 0 && any.length === 0) return false;
+  const hasAll = all.every((k) => set.has(k));
+  const hasAny = any.length ? any.some((k) => set.has(k)) : true;
+  return hasAll && hasAny;
+}
+
 /** Erkennt anhand einer Kopfzeile, um welchen Tabellentyp es sich handelt. */
 function classifyHeader(cells, project) {
   const set = new Set(cells.map(key));
-  const has = (...keys) => keys.every((k) => set.has(k));
-  const some = (...keys) => keys.some((k) => set.has(k));
-
-  if (has('anzeigengruppe', 'adspend')) return 'overview';
-  // Fragebogen-/Ticket-Tab über die in der Projekt-Config hinterlegten Spalten
-  // erkennen (generisch statt fest verdrahtet).
-  const det = project?.questionnaire?.detect || {};
-  const anyHit = Array.isArray(det.any) && det.any.length && some(...det.any);
-  const allHit = Array.isArray(det.all) && det.all.length && has(...det.all);
-  if (anyHit || allHit) return 'tickets';
-  if (has('gewonnen am') && some('utm_source', 'e-mail')) return 'leads';
+  if (matchDetect(set, project?.sheet?.overview?.detect)) return 'overview';
+  if (matchDetect(set, project?.questionnaire?.detect)) return 'tickets';
+  if (matchDetect(set, project?.sheet?.leads?.detect)) return 'leads';
   return null;
 }
 
@@ -111,22 +118,17 @@ const num = (s) => {
   return Number.isFinite(n) ? n : null;
 };
 
-function parseOverviewRow(o) {
-  const adset = norm(o['anzeigengruppe']);
+function parseOverviewRow(o, fields) {
+  const adset = norm(pickRaw(o, fields.key));
   if (!adset) return null;
   return {
-    status: norm(o['status']),
+    status: norm(pickRaw(o, fields.status)),
     adset,
-    adspend: num(o['adspend']),
-    clicks: num(o['ausg klicks'] ?? o['klicks']),
-    cpc: num(o['cpc']),
-    cvrOptin: num(o['cvr optin']),
-    cvrTicket: num(o['cvr ticket']),
-    cpl: num(o['cpl']),
-    leads: num(o['leads']),
-    tickets: num(o['vip ticket']),
-    ticketsQualified: num(o['ticket qualifiziert']),
-    ticketsUnqualified: num(o['ticket nicht qualifiziert']),
+    adspend: num(pickRaw(o, fields.adspend)),
+    clicks: num(pickRaw(o, fields.clicks)),
+    cpc: num(pickRaw(o, fields.cpc)),
+    cvrStart: num(pickRaw(o, fields.cvrStart)),
+    leads: num(pickRaw(o, fields.leads)),
   };
 }
 
@@ -139,22 +141,21 @@ function pickRaw(o, keys) {
   return '';
 }
 
-function parseLeadRow(o, project) {
-  const wonAt = parseDate(o['gewonnen am']);
+function parseLeadRow(o, fields) {
+  const wonAt = parseDate(pickRaw(o, fields.at));
   if (!wonAt) return null; // Zähl-/Summenzeilen ohne gültiges Datum überspringen
-  const q = project.questionnaire || {};
   return {
     wonAt,
-    firstName: norm(o['vorname']),
-    lastName: norm(o['nachname']),
-    email: normEmail(o['e-mail']),
+    firstName: norm(pickRaw(o, fields.firstName)) || norm(pickRaw(o, fields.name)),
+    lastName: norm(pickRaw(o, fields.lastName)),
+    email: normEmail(pickRaw(o, fields.email)),
     utm: {
-      source: norm(o['utm_source']),
-      medium: norm(o['utm_medium']),
-      campaign: norm(o['utm_campaign']),
-      term: norm(o['utm_term']),
+      source: norm(pickRaw(o, fields.utmSource)),
+      medium: norm(pickRaw(o, fields.utmMedium)),
+      campaign: norm(pickRaw(o, fields.utmCampaign)),
+      term: norm(pickRaw(o, fields.utmTerm)),
     },
-    ticketAt: parseDate(pickRaw(o, q.leadTicketColumn)),
+    ticketAt: parseDate(pickRaw(o, fields.ticketColumn)),
   };
 }
 
@@ -195,6 +196,8 @@ export function parseSheets(sheets, project = DEFAULT_PROJECT) {
   const overview = [];
   const warnings = [];
   const seenTickets = new Set();
+  const overviewFields = project.sheet?.overview?.fields || DEFAULT_PROJECT.sheet.overview.fields;
+  const leadFields = project.sheet?.leads?.fields || DEFAULT_PROJECT.sheet.leads.fields;
 
   for (const sheet of sheets) {
     const rows = sheet.values || [];
@@ -202,10 +205,10 @@ export function parseSheets(sheets, project = DEFAULT_PROJECT) {
       for (const row of table.body) {
         const o = rowToObj(table.header, row);
         if (table.type === 'overview') {
-          const r = parseOverviewRow(o);
+          const r = parseOverviewRow(o, overviewFields);
           if (r) overview.push(r);
         } else if (table.type === 'leads') {
-          const r = parseLeadRow(o, project);
+          const r = parseLeadRow(o, leadFields);
           if (r) leads.push(r);
         } else if (table.type === 'tickets') {
           const r = parseTicketRow(o, project);

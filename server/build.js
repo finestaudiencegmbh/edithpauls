@@ -56,13 +56,17 @@ function isOrganicSource(utm, patterns) {
  * Bezahlte Anzeigengruppen folgen dem Schema "X | Y | Z | ..." und/oder
  * tauchen in der Adspend-Übersicht auf. Alles andere gilt als organisch.
  */
-function isPaid(utm, paidAdsets, patterns) {
-  // Harte Regel: ManyChat / Bio / moneymaker-workshop ist immer organisch.
-  if (isOrganicSource(utm, patterns)) return false;
+function isPaid(utm, paidAdsets, organicPatterns, paidPatterns) {
+  // Expliziter Paid-Marker (aus campaigns.json) hat Vorrang – nötig, wenn
+  // bezahlte Anzeigengruppen NICHT dem "X | Y | Z"-Schema folgen (z. B.
+  // "CBO AG2: …") und der Kampagnenname zufällig ein Organisch-Wort enthält.
+  if (isOrganicSource(utm, paidPatterns)) return true;
+  // Harte Regel: ManyChat / Bio / Newsletter etc. ist immer organisch.
+  if (isOrganicSource(utm, organicPatterns)) return false;
   const src = collapse(utm.source);
   if (!src) return false;
   if (paidAdsets.has(src.toLowerCase())) return true;
-  // Bezahlte Anzeigengruppen folgen dem Schema "X | Y | Z | ...".
+  // Bezahlte Anzeigengruppen folgen oft dem Schema "X | Y | Z | ...".
   if (src.includes('|')) return true;
   // Rein numerische Source = Meta-ID -> bezahlt (aber nicht eindeutig zuordenbar).
   if (isNumericId(src)) return true;
@@ -79,6 +83,7 @@ export function buildDataset({ leads, tickets, overview }, cfg, project = DEFAUL
   const paidAdsets = new Set(overview.map((o) => o.adset.toLowerCase()));
   const campCfg = loadCampaignConfig();
   const organicPatterns = campCfg.organicPatterns || ['manychat', 'bio'];
+  const paidPatterns = campCfg.paidPatterns || [];
   const organicLabel = campCfg.organicLabel || '(organisch)';
   const unattribLabel = campCfg.unattributablePaidLabel || '(Paid · nicht zuordenbar)';
 
@@ -136,7 +141,7 @@ export function buildDataset({ leads, tickets, overview }, cfg, project = DEFAUL
   // 3) Finalisieren: Dimensionen, Quelle, Qualität
   const records = [];
   for (const r of recs) {
-    const paid = isPaid(r.utm, paidAdsets, organicPatterns);
+    const paid = isPaid(r.utm, paidAdsets, organicPatterns, paidPatterns);
     // Qualität nur wenn das Projekt ein Fragebogen-/Scoring-System hat.
     const quality = hasQuality ? computeQuality(r.answers, cfg) : null;
 

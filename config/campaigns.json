@@ -7,8 +7,9 @@
   "_comment_overrides": "Manuelle Korrektur, falls das Meta-Ziel nicht passt. Schlüssel = Kampagnenname (Teilstring, case-insensitiv), Wert = true (zählt als Lead-Kampagne) oder false (Traffic/ausschließen). Overrides haben Vorrang vor dem Ziel.",
   "overrides": {},
 
-  "_comment_classification": "Lead-Quellen-Klassifizierung (build.js). organicPatterns: kommt einer dieser Begriffe in source/medium/campaign/term vor, gilt der Lead als organisch und wird unter 'organicLabel' zusammengefasst. unattributablePaidLabel: bezahlte Leads mit rein numerischer Source/Campaign (z. B. 52540202640549) sind Paid, aber nicht eindeutig zuordenbar und landen in diesem Sammel-Bucket.",
-  "organicPatterns": ["manychat", "bio", "moneymaker-workshop"],
+  "_comment_classification": "Lead-Quellen-Klassifizierung (build.js). paidPatterns hat VORRANG: kommt einer dieser Begriffe in source/medium/campaign/term vor, gilt der Lead als bezahlt (nötig, weil die Ad-Anzeigengruppen hier 'CBO AG2: …' heißen und KEIN '|'-Schema haben). organicPatterns: danach geprüft – kommt einer dieser Begriffe vor, gilt der Lead als organisch. unattributablePaidLabel: bezahlte Leads mit rein numerischer Source sind Paid, aber nicht eindeutig zuordenbar.",
+  "paidPatterns": ["cbo", "fa -", "ag1:", "ag2:", "ag3:", "ag4", "ag5", "ag6", "ag7", "winning", "launch live webinar"],
+  "organicPatterns": ["email", "newsletter", "website", "bio", "manychat", "instagram", "sacredlife", "direkt"],
   "organicLabel": "(organisch)",
   "unattributablePaidLabel": "(Paid · nicht zuordenbar)"
 }

@@ -18,6 +18,39 @@ export const DEFAULT_PROJECT = {
   branding: { accent: '#d0bb5a', logo: '/logo.svg' },
   features: { hasTickets: true, hasQuality: true },
   ticketLabel: { singular: 'VIP-Ticket', plural: 'VIP-Tickets' },
+  // Sheet-Tabellen-Erkennung + Spalten-Mapping. Schlüssel sind normalisiert
+  // (kleingeschrieben, ohne ? : ., Mehrfach-Leerzeichen kollabiert). Pro Feld
+  // mehrere Varianten erlaubt (erste nicht-leere gewinnt). Defaults = bisheriges
+  // (MoneyMaker-)Verhalten, sodass die Tests ohne Config grün bleiben.
+  sheet: {
+    overview: {
+      detect: { all: ['anzeigengruppe', 'adspend'], any: [] },
+      fields: {
+        key: ['anzeigengruppe', 'creative'],
+        status: ['status'],
+        adspend: ['adspend'],
+        clicks: ['ausg klicks', 'klicks'],
+        cpc: ['cpc'],
+        cvrStart: ['cvr optin', 'cvr start'],
+        leads: ['leads'],
+      },
+    },
+    leads: {
+      detect: { all: ['gewonnen am'], any: ['utm_source', 'e-mail'] },
+      fields: {
+        at: ['gewonnen am'],
+        firstName: ['vorname'],
+        lastName: ['nachname'],
+        name: [],
+        email: ['e-mail'],
+        utmSource: ['utm_source'],
+        utmMedium: ['utm_medium'],
+        utmCampaign: ['utm_campaign'],
+        utmTerm: ['utm_term'],
+        ticketColumn: ['vip-ticket geholt am'],
+      },
+    },
+  },
   questionnaire: {
     detect: {
       any: ['monatliches einkommen', 'immobilien im besitz'],
@@ -47,12 +80,23 @@ export const DEFAULT_PROJECT = {
 /** Führt die Projekt-Config mit den Defaults zusammen (bekannte Sektionen tief). */
 function mergeConfig(base, over) {
   const q = over.questionnaire;
+  const s = over.sheet;
+  // Mappt eine Tabellen-Definition (detect/fields) über die Defaults.
+  const mergeTable = (b, o) => (o ? { ...b, ...o, detect: { ...b.detect, ...(o.detect || {}) }, fields: { ...b.fields, ...(o.fields || {}) } } : b);
   return {
     ...base,
     ...over,
     branding: { ...base.branding, ...(over.branding || {}) },
     features: { ...base.features, ...(over.features || {}) },
     ticketLabel: { ...base.ticketLabel, ...(over.ticketLabel || {}) },
+    sheet: s
+      ? {
+          ...base.sheet,
+          ...s,
+          overview: mergeTable(base.sheet.overview, s.overview),
+          leads: mergeTable(base.sheet.leads, s.leads),
+        }
+      : base.sheet,
     questionnaire: q
       ? {
           ...base.questionnaire,

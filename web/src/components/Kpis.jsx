@@ -14,6 +14,7 @@ function Card({ label, value, sub, accent }) {
 
 const CYAN = '#5ec8d8';
 const GREEN = '#6fcf97';
+const VIOLET = '#a78bfa';
 
 export default function Kpis({ kpis, dist, tiers, features = {}, accent = '#d0bb5a', ticketLabel = {}, termine = {} }) {
   const { hasTickets = true, hasQuality = true } = features;
@@ -40,9 +41,20 @@ export default function Kpis({ kpis, dist, tiers, features = {}, accent = '#d0bb
           <Card label="Organische Leads" value={fmtInt(kpis.organic)} sub="ohne Ad-Kosten" accent={CYAN} />
           {hasTickets && <Card label={`${tPlural} (Organisch)`} value={fmtInt(kpis.organicTickets)} sub={`Rate ${fmtPct(kpis.organicTicketRate)}`} accent={CYAN} />}
           <Card label="Leads gesamt" value={fmtInt(kpis.total)} sub={`${fmtInt(kpis.paid)} bezahlt · ${fmtInt(kpis.organic)} organisch`} accent={CYAN} />
-          {termine.has && <Card label="Termine" value={fmtInt(termine.total)} sub={`${fmtInt(termine.paid)} über Ads · ${fmtInt(termine.organic)} organisch`} accent={CYAN} />}
         </div>
       </section>
+
+      {/* Termine (Funnel-Stufe nach den Leads) */}
+      {termine.has && (
+        <section className="kpi-section">
+          <div className="kpi-section-head"><span className="kpi-dot" style={{ background: VIOLET }} />Termine</div>
+          <div className="kpi-grid">
+            <Card label="Termine gesamt" value={fmtInt(termine.total)} sub="vereinbarte Gespräche" accent={VIOLET} />
+            <Card label="Termine über Ads" value={fmtInt(termine.paid)} sub="bezahlt" accent={VIOLET} />
+            <Card label="Termine organisch" value={fmtInt(termine.organic)} sub="ohne Ad-Kosten" accent={VIOLET} />
+          </div>
+        </section>
+      )}
 
       {/* Lead-Qualität (quellenübergreifend) */}
       {hasQuality && (

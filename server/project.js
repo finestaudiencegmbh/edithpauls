@@ -50,6 +50,21 @@ export const DEFAULT_PROJECT = {
         ticketColumn: ['vip-ticket geholt am'],
       },
     },
+    // Funnel-Stufe "Termine" (vereinbarte Gespräche). Standardmäßig inaktiv
+    // (leeres detect -> matcht nichts); pro Projekt über die Config aktivieren.
+    termine: {
+      detect: { all: [], any: [] },
+      fields: {
+        at: ['gewonnen am', 'datum'],
+        name: ['name'],
+        email: ['e-mail'],
+        phone: ['telefon'],
+        utmSource: ['utm_source', 'utm source'],
+        utmMedium: ['utm_medium', 'utm medium'],
+        utmCampaign: ['utm_campaign', 'utm campaign'],
+        appointmentAt: ['datum gespräch'],
+      },
+    },
   },
   questionnaire: {
     detect: {
@@ -95,6 +110,7 @@ function mergeConfig(base, over) {
           ...s,
           overview: mergeTable(base.sheet.overview, s.overview),
           leads: mergeTable(base.sheet.leads, s.leads),
+          termine: mergeTable(base.sheet.termine, s.termine),
         }
       : base.sheet,
     questionnaire: q

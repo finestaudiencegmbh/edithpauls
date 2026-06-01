@@ -79,6 +79,13 @@ export default function App() {
   }, [project?.name, features.hasTickets, brandTitle, ticketLabel.plural]);
   const filtered = useMemo(() => (data ? applyFilters(data.leads, filters) : []), [data, filters]);
   const kpis = useMemo(() => (data ? computeKpis(filtered, data.overviewByAdset, fb) : null), [data, filtered, fb]);
+  // Funnel-Stufe "Termine" (gleiche Filter/Zeitraum wie die Leads)
+  const filteredTermine = useMemo(() => (data ? applyFilters(data.termine || [], filters) : []), [data, filters]);
+  const termineKpis = useMemo(() => {
+    const total = filteredTermine.length;
+    const paid = filteredTermine.filter((t) => t.sourceType === 'paid').length;
+    return { has: (data?.counts?.termine || 0) > 0, total, paid, organic: total - paid };
+  }, [filteredTermine, data]);
   const dist = useMemo(() => (data ? tierDistribution(filtered, tiers) : {}), [data, filtered, tiers]);
   const leadDaily = useMemo(() => (data ? leadsByDay(filtered) : []), [data, filtered]);
   const cplDaily = useMemo(() => ((hasFb && fb.daily) ? cplByDay(fb.daily.spend, filtered) : []), [hasFb, fb, filtered]);
@@ -224,7 +231,7 @@ export default function App() {
                 </section>
 
                 {/* KPI-Boxen darunter */}
-                <Kpis kpis={kpis} dist={dist} tiers={tiers} features={features} accent={accent} ticketLabel={ticketLabel} />
+                <Kpis kpis={kpis} dist={dist} tiers={tiers} features={features} accent={accent} ticketLabel={ticketLabel} termine={termineKpis} />
 
                 <section className="panel">
                   <div className="panel-head"><div><h2>Bezahlt · Meta</h2><span className="panel-sub">Performance nach Kampagne, Anzeigengruppe, Creative und Placement</span></div></div>

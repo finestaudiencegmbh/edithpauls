@@ -39,12 +39,16 @@ const leadsSheet = {
   ],
 };
 
-// Termine-Tab: darf NICHT als Leads erkannt werden (kein "Leads aus Ads"/"A/B Variante")
+// Termine-Tab: eigene Funnel-Stufe. Darf NICHT als Leads gezählt werden; nur
+// Zeilen mit "Datum Gespräch" zählen (Summen-/Testzeile fallen raus).
 const termineSheet = {
   title: 'Termine',
   values: [
     ['Datum', 'Name', 'E-Mail', 'Telefon', 'UTM Source', 'UTM Medium', 'UTM  Campaign', 'Datum Gespräch', 'Termine', 'Termine aus Ads', 'Zielgruppe?', 'Feedback', 'UTM Source', 'UTM Medium', 'UTM  Campaign'],
-    ['2026-03-06 20:05:36 +0000', 'Olga Martens', 'olga@outlook.de', '+49 160 8531840', 'email', 'mobile', 'workshop', '2026-03-09 11:00:00 +0000', '', '', 'Ja', 'Feedback…', 'webinar-geschenk', 'whatsapp', 'first-mover-call'],
+    ['', '', '', '', 'Lead', '', '', '', '83', '20', '', '', 'Termine', '', ''], // Summenzeile -> ignorieren
+    ['2025-09-23 07:32:08 +0000', 'Edith', 'coaching@edithpauls.com', 'phone_number', 'Test', 'Test', 'Test', '', '', '', '', '', '', '', ''], // Testzeile ohne Gespräch -> ignorieren
+    ['2026-03-08 14:29:25 +0000', 'Edda Beispiel', 'edda@gmail.com', '+49 176 43188185', 'CBO AG2: Mütter 070326', 'Static 2: Beziehungsfähig AG2', 'CBO B2C // Live-Workshop // Leads 060326', '2026-03-10 11:15:00 +0000', '', '', 'Nein', 'Feedback', 'webinar-geschenk', 'whatsapp', 'first-mover-call'],
+    ['2026-03-09 19:11:37 +0000', 'Anke Sendzik', 'anke@googlemail.com', '+49 160 8033022', 'email', 'mobile', 'workshop', '2026-03-11 16:30:00 +0000', '', '', 'Termin abgesagt', 'Feedback', 'live-workshop', 'direktlink', 'calendly'],
   ],
 };
 
@@ -54,6 +58,7 @@ assert.equal(parsed.overview.length, 2, 'beide Creative-Zeilen erkannt');
 assert.equal(parsed.overview[0].adset, 'CBO Creative 7 AG1', 'Creative-Name als Schlüssel');
 assert.equal(parsed.overview[0].adspend, 10.43, 'deutsches Zahlenformat geparst');
 assert.equal(parsed.leads.length, 3, 'Summenzeile ignoriert, Termine-Tab NICHT als Leads gezählt');
+assert.equal(parsed.termine.length, 2, 'nur Zeilen mit Datum Gespräch (Summen-/Testzeile raus)');
 
 const ds = buildDataset(parsed, loadScoringConfig(), project);
 const edda = ds.leads.find((l) => l.email === 'edda@gmail.com');
@@ -70,6 +75,14 @@ assert.equal(lydia.sourceType, 'organic', 'email-Quelle = organisch');
 assert.equal(nadja.sourceType, 'organic', 'newsletter = organisch');
 assert.equal(edda.hasTicket, false, 'keine Ticket-Logik in diesem Projekt');
 assert.equal(edda.quality, null, 'kein Scoring in diesem Projekt');
+
+// Termine-Funnelstufe im Dataset
+assert.equal(ds.counts.termine, 2, 'zwei Termine im Dataset');
+assert.equal(ds.counts.paidTermine, 1, 'ein Termin über Ads (CBO), einer organisch (email)');
+const terminEdda = ds.termine.find((t) => t.email === 'edda@gmail.com');
+assert.equal(terminEdda.sourceType, 'paid', 'CBO-Termin = bezahlt');
+assert.equal(terminEdda.adset, 'CBO AG2: Mütter 070326', 'Termin-Attribution über UTM');
+assert.ok(terminEdda.appointmentAt, 'Gesprächs-Datum übernommen');
 
 console.log('✓ Alle Edith-Webinar-Mapping-Tests bestanden');
 console.log('  Leads:', ds.counts, '| paid:', ds.leads.filter((l) => l.sourceType === 'paid').length, '| organic:', ds.leads.filter((l) => l.sourceType === 'organic').length);

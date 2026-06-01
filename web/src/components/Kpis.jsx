@@ -15,7 +15,7 @@ function Card({ label, value, sub, accent }) {
 const CYAN = '#5ec8d8';
 const GREEN = '#6fcf97';
 
-export default function Kpis({ kpis, dist, tiers, features = {}, accent = '#d0bb5a', ticketLabel = {} }) {
+export default function Kpis({ kpis, dist, tiers, features = {}, accent = '#d0bb5a', ticketLabel = {}, termine = {} }) {
   const { hasTickets = true, hasQuality = true } = features;
   const tPlural = ticketLabel.plural || 'VIP-Tickets';
 
@@ -40,6 +40,7 @@ export default function Kpis({ kpis, dist, tiers, features = {}, accent = '#d0bb
           <Card label="Organische Leads" value={fmtInt(kpis.organic)} sub="ohne Ad-Kosten" accent={CYAN} />
           {hasTickets && <Card label={`${tPlural} (Organisch)`} value={fmtInt(kpis.organicTickets)} sub={`Rate ${fmtPct(kpis.organicTicketRate)}`} accent={CYAN} />}
           <Card label="Leads gesamt" value={fmtInt(kpis.total)} sub={`${fmtInt(kpis.paid)} bezahlt · ${fmtInt(kpis.organic)} organisch`} accent={CYAN} />
+          {termine.has && <Card label="Termine" value={fmtInt(termine.total)} sub={`${fmtInt(termine.paid)} über Ads · ${fmtInt(termine.organic)} organisch`} accent={CYAN} />}
         </div>
       </section>
 

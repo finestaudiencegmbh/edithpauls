@@ -50,6 +50,19 @@
         "utmTerm": [],
         "ticketColumn": []
       }
+    },
+    "termine": {
+      "detect": { "all": ["datum gespräch"], "any": [] },
+      "fields": {
+        "at": ["datum"],
+        "name": ["name"],
+        "email": ["e-mail"],
+        "phone": ["telefon"],
+        "utmSource": ["utm source"],
+        "utmMedium": ["utm medium"],
+        "utmCampaign": ["utm campaign"],
+        "appointmentAt": ["datum gespräch"]
+      }
     }
   },
 

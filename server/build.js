@@ -74,10 +74,26 @@ function isPaid(utm, paidAdsets, organicPatterns, paidPatterns) {
 }
 
 /**
+ * Leitet Kampagne/Anzeigengruppe/Creative aus den UTM-Werten ab (gleiche Logik
+ * wie bei den Leads): organisch -> Sammel-Label, paid mit unvollständigem Tagging
+ * -> Sammel-Bucket, sonst die Rohwerte.
+ */
+function classifyUtm(utm, paid, organicLabel, unattribLabel) {
+  const rawCampaign = collapse(utm.campaign);
+  const rawAdset = collapse(utm.source);
+  const rawCreative = collapse(utm.medium);
+  if (!paid) return { campaign: organicLabel, adset: organicLabel, creative: rawCreative || organicLabel };
+  if (isNumericId(rawCampaign) || isNumericId(rawAdset) || !rawCampaign || !rawAdset) {
+    return { campaign: unattribLabel, adset: unattribLabel, creative: rawCreative || unattribLabel };
+  }
+  return { campaign: rawCampaign, adset: rawAdset, creative: rawCreative || unattribLabel };
+}
+
+/**
  * Führt Leads, VIP-Tickets und Adspend-Übersicht zu einem einheitlichen
  * Datensatz zusammen. Join über die E-Mail-Adresse.
  */
-export function buildDataset({ leads, tickets, overview }, cfg, project = DEFAULT_PROJECT) {
+export function buildDataset({ leads, tickets, overview, termine = [] }, cfg, project = DEFAULT_PROJECT) {
   const warnings = [];
   const { hasTickets = true, hasQuality = true } = project.features || {};
   const paidAdsets = new Set(overview.map((o) => o.adset.toLowerCase()));
@@ -209,16 +225,37 @@ export function buildDataset({ leads, tickets, overview }, cfg, project = DEFAUL
     }
   }
 
+  // Funnel-Stufe "Termine": jede Zeile mit Gesprächs-Datum = ein vereinbarter
+  // Termin. Quelle/Attribution analog zu den Leads (über dieselben UTM-Regeln).
+  const termineRecords = (termine || []).map((t) => {
+    const paid = isPaid(t.utm, paidAdsets, organicPatterns, paidPatterns);
+    const { campaign, adset, creative } = classifyUtm(t.utm, paid, organicLabel, unattribLabel);
+    return {
+      name: collapse(t.name) || '(ohne Name)',
+      email: t.email,
+      phone: t.phone,
+      wonAt: t.wonAt,
+      appointmentAt: t.appointmentAt,
+      sourceType: paid ? 'paid' : 'organic',
+      campaign,
+      adset,
+      creative,
+    };
+  });
+
   return {
     leads: records,
     overview,
     overviewByAdset: Object.fromEntries(overviewByAdset),
+    termine: termineRecords,
     warnings,
     counts: {
       leads: records.length,
       paidLeads: records.filter((r) => r.sourceType === 'paid').length,
       tickets: records.filter((r) => r.hasTicket).length,
       scored: records.filter((r) => r.quality).length,
+      termine: termineRecords.length,
+      paidTermine: termineRecords.filter((r) => r.sourceType === 'paid').length,
     },
   };
 }

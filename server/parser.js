@@ -40,6 +40,7 @@ function classifyHeader(cells, project) {
   const set = new Set(cells.map(key));
   if (matchDetect(set, project?.sheet?.overview?.detect)) return 'overview';
   if (matchDetect(set, project?.questionnaire?.detect)) return 'tickets';
+  if (matchDetect(set, project?.sheet?.termine?.detect)) return 'termine';
   if (matchDetect(set, project?.sheet?.leads?.detect)) return 'leads';
   return null;
 }
@@ -49,7 +50,11 @@ function rowToObj(headerCells, row) {
   headerCells.forEach((h, i) => {
     const k = key(h);
     if (!k) return;
-    obj[k] = norm(row[i]);
+    const v = norm(row[i]);
+    // Bei doppelten Spaltennamen (z. B. zweimal "UTM Source" im Termine-Tab:
+    // erst die Ad-Quelle, später die Buchungs-/Geschenk-Quelle) gewinnt die
+    // ERSTE nicht-leere Angabe – das ist die für die Attribution relevante.
+    if (!(k in obj) || (obj[k] === '' && v !== '')) obj[k] = v;
   });
   return obj;
 }
@@ -159,6 +164,26 @@ function parseLeadRow(o, fields) {
   };
 }
 
+function parseTermineRow(o, fields) {
+  const appointmentAt = parseDate(pickRaw(o, fields.appointmentAt));
+  const at = parseDate(pickRaw(o, fields.at));
+  // Nur echte Termine (mit vereinbartem Gesprächs-Datum) – Summen-/Testzeilen raus.
+  if (!appointmentAt) return null;
+  return {
+    wonAt: at || appointmentAt,
+    appointmentAt,
+    name: norm(pickRaw(o, fields.name)),
+    email: normEmail(pickRaw(o, fields.email)),
+    phone: norm(pickRaw(o, fields.phone)),
+    utm: {
+      source: norm(pickRaw(o, fields.utmSource)),
+      medium: norm(pickRaw(o, fields.utmMedium)),
+      campaign: norm(pickRaw(o, fields.utmCampaign)),
+      term: '',
+    },
+  };
+}
+
 function parseTicketRow(o, project) {
   const q = project.questionnaire || {};
   const f = q.fields || {};
@@ -194,10 +219,12 @@ export function parseSheets(sheets, project = DEFAULT_PROJECT) {
   const leads = [];
   const tickets = [];
   const overview = [];
+  const termine = [];
   const warnings = [];
   const seenTickets = new Set();
   const overviewFields = project.sheet?.overview?.fields || DEFAULT_PROJECT.sheet.overview.fields;
   const leadFields = project.sheet?.leads?.fields || DEFAULT_PROJECT.sheet.leads.fields;
+  const termineFields = project.sheet?.termine?.fields || DEFAULT_PROJECT.sheet.termine.fields;
 
   for (const sheet of sheets) {
     const rows = sheet.values || [];
@@ -207,6 +234,9 @@ export function parseSheets(sheets, project = DEFAULT_PROJECT) {
         if (table.type === 'overview') {
           const r = parseOverviewRow(o, overviewFields);
           if (r) overview.push(r);
+        } else if (table.type === 'termine') {
+          const r = parseTermineRow(o, termineFields);
+          if (r) termine.push(r);
         } else if (table.type === 'leads') {
           const r = parseLeadRow(o, leadFields);
           if (r) leads.push(r);
@@ -223,7 +253,7 @@ export function parseSheets(sheets, project = DEFAULT_PROJECT) {
     }
   }
 
-  return { leads, tickets, overview, warnings };
+  return { leads, tickets, overview, termine, warnings };
 }
 
 export const _internal = {

@@ -93,7 +93,7 @@ function classifyUtm(utm, paid, organicLabel, unattribLabel) {
  * Führt Leads, VIP-Tickets und Adspend-Übersicht zu einem einheitlichen
  * Datensatz zusammen. Join über die E-Mail-Adresse.
  */
-export function buildDataset({ leads, tickets, overview, termine = [] }, cfg, project = DEFAULT_PROJECT) {
+export function buildDataset({ leads, tickets, overview, termine = [], closings = [], closingsSummary = null }, cfg, project = DEFAULT_PROJECT) {
   const warnings = [];
   const { hasTickets = true, hasQuality = true } = project.features || {};
   const paidAdsets = new Set(overview.map((o) => o.adset.toLowerCase()));
@@ -243,11 +243,44 @@ export function buildDataset({ leads, tickets, overview, termine = [] }, cfg, pr
     };
   });
 
+  // Funnel-Stufe "Closings" (Verkäufe): je Zeile ein Verkauf inkl. Umsatz,
+  // Quelle/Attribution analog zu Leads/Termine.
+  const closingRecords = (closings || []).map((c) => {
+    const paid = isPaid(c.utm, paidAdsets, organicPatterns, paidPatterns);
+    const { campaign, adset, creative } = classifyUtm(c.utm, paid, organicLabel, unattribLabel);
+    return {
+      name: collapse(c.name) || '(ohne Name)',
+      email: c.email,
+      phone: c.phone,
+      land: c.land,
+      produkt: c.produkt,
+      revenueNet: c.revenueNet,
+      revenueGross: c.revenueGross,
+      wonAt: c.wonAt,
+      sourceType: paid ? 'paid' : 'organic',
+      campaign,
+      adset,
+      creative,
+    };
+  });
+
   return {
     leads: records,
     overview,
     overviewByAdset: Object.fromEntries(overviewByAdset),
     termine: termineRecords,
+    closings: closingRecords,
+    // Cash Collect existiert im Sheet nur als Gesamtsumme (nicht je Verkauf).
+    closingsSummary: closingsSummary
+      ? {
+          cashCollect: (closingsSummary.cashCollectPaid || 0) + (closingsSummary.cashCollectOrganisch || 0),
+          cashCollectPaid: closingsSummary.cashCollectPaid ?? null,
+          cashCollectOrganisch: closingsSummary.cashCollectOrganisch ?? null,
+          umsatzPaid: closingsSummary.umsatzPaid ?? null,
+          umsatzOrganisch: closingsSummary.umsatzOrganisch ?? null,
+          closingsCount: closingsSummary.closingsCount ?? null,
+        }
+      : null,
     warnings,
     counts: {
       leads: records.length,
@@ -256,6 +289,8 @@ export function buildDataset({ leads, tickets, overview, termine = [] }, cfg, pr
       scored: records.filter((r) => r.quality).length,
       termine: termineRecords.length,
       paidTermine: termineRecords.filter((r) => r.sourceType === 'paid').length,
+      closings: closingRecords.length,
+      paidClosings: closingRecords.filter((r) => r.sourceType === 'paid').length,
     },
   };
 }

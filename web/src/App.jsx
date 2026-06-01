@@ -86,6 +86,27 @@ export default function App() {
     const paid = filteredTermine.filter((t) => t.sourceType === 'paid').length;
     return { has: (data?.counts?.termine || 0) > 0, total, paid, organic: total - paid };
   }, [filteredTermine, data]);
+  // Funnel-Stufe "Closings" (Verkäufe + Umsatz; Cash Collect aus der Sheet-Summe)
+  const filteredClosings = useMemo(() => (data ? applyFilters(data.closings || [], filters) : []), [data, filters]);
+  const closingsKpis = useMemo(() => {
+    const sum = (arr, f) => arr.reduce((s, c) => s + (f(c) || 0), 0);
+    const total = filteredClosings.length;
+    const paidRows = filteredClosings.filter((c) => c.sourceType === 'paid');
+    const umsatz = sum(filteredClosings, (c) => c.revenueGross);
+    const umsatzPaid = sum(paidRows, (c) => c.revenueGross);
+    const spend = kpis?.spend || 0;
+    return {
+      has: (data?.counts?.closings || 0) > 0,
+      total,
+      paid: paidRows.length,
+      organic: total - paidRows.length,
+      umsatz,
+      umsatzPaid,
+      umsatzOrganic: umsatz - umsatzPaid,
+      roas: spend > 0 ? umsatz / spend : null,
+      cashCollect: data?.closingsSummary?.cashCollect ?? null,
+    };
+  }, [filteredClosings, data, kpis]);
   const dist = useMemo(() => (data ? tierDistribution(filtered, tiers) : {}), [data, filtered, tiers]);
   const leadDaily = useMemo(() => (data ? leadsByDay(filtered) : []), [data, filtered]);
   const cplDaily = useMemo(() => ((hasFb && fb.daily) ? cplByDay(fb.daily.spend, filtered) : []), [hasFb, fb, filtered]);
@@ -231,7 +252,7 @@ export default function App() {
                 </section>
 
                 {/* KPI-Boxen darunter */}
-                <Kpis kpis={kpis} dist={dist} tiers={tiers} features={features} accent={accent} ticketLabel={ticketLabel} termine={termineKpis} />
+                <Kpis kpis={kpis} dist={dist} tiers={tiers} features={features} accent={accent} ticketLabel={ticketLabel} termine={termineKpis} closings={closingsKpis} />
 
                 <section className="panel">
                   <div className="panel-head"><div><h2>Bezahlt · Meta</h2><span className="panel-sub">Performance nach Kampagne, Anzeigengruppe, Creative und Placement</span></div></div>

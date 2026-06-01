@@ -16,7 +16,9 @@ const CYAN = '#5ec8d8';
 const GREEN = '#6fcf97';
 const VIOLET = '#a78bfa';
 
-export default function Kpis({ kpis, dist, tiers, features = {}, accent = '#d0bb5a', ticketLabel = {}, termine = {} }) {
+const fmtRoas = (n) => (n == null || !Number.isFinite(n) ? '–' : `${n.toFixed(1).replace('.', ',')}×`);
+
+export default function Kpis({ kpis, dist, tiers, features = {}, accent = '#d0bb5a', ticketLabel = {}, termine = {}, closings = {} }) {
   const { hasTickets = true, hasQuality = true } = features;
   const tPlural = ticketLabel.plural || 'VIP-Tickets';
 
@@ -52,6 +54,21 @@ export default function Kpis({ kpis, dist, tiers, features = {}, accent = '#d0bb
             <Card label="Termine gesamt" value={fmtInt(termine.total)} sub="vereinbarte Gespräche" accent={VIOLET} />
             <Card label="Termine über Ads" value={fmtInt(termine.paid)} sub="bezahlt" accent={VIOLET} />
             <Card label="Termine organisch" value={fmtInt(termine.organic)} sub="ohne Ad-Kosten" accent={VIOLET} />
+          </div>
+        </section>
+      )}
+
+      {/* Closings (Verkäufe + Umsatz) */}
+      {closings.has && (
+        <section className="kpi-section">
+          <div className="kpi-section-head"><span className="kpi-dot" style={{ background: GREEN }} />Closings</div>
+          <div className="kpi-grid">
+            <Card label="Closings gesamt" value={fmtInt(closings.total)} sub={`${fmtInt(closings.paid)} über Ads · ${fmtInt(closings.organic)} organisch`} accent={GREEN} />
+            <Card label="Umsatz" value={fmtEur(closings.umsatz)} sub={`${fmtEur(closings.umsatzPaid)} über Ads · ${fmtEur(closings.umsatzOrganic)} organisch`} accent={GREEN} />
+            <Card label="ROAS" value={fmtRoas(closings.roas)} sub="Umsatz ÷ Adspend" accent={GREEN} />
+            {closings.cashCollect != null && (
+              <Card label="Cash Collect" value={fmtEur(closings.cashCollect)} sub="gesamt (lt. Sheet, ungefiltert)" accent={GREEN} />
+            )}
           </div>
         </section>
       )}

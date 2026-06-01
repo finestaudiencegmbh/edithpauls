@@ -65,6 +65,30 @@ export const DEFAULT_PROJECT = {
         appointmentAt: ['datum gespräch'],
       },
     },
+    // Funnel-Stufe "Closings" (Verkäufe). Pro Verkaufszeile: Umsatz netto/brutto.
+    // Cash Collect existiert i. d. R. nur in der Summenzeile (summary*-Felder).
+    // Standardmäßig inaktiv.
+    closings: {
+      detect: { all: [], any: [] },
+      fields: {
+        at: ['datum kauf'],
+        name: ['name'],
+        email: ['e-mail'],
+        phone: ['telefon'],
+        land: ['land'],
+        produkt: ['produkt'],
+        revenueNet: ['umsatz netto'],
+        revenueGross: ['umsatz brutto'],
+        utmSource: ['utm_source', 'utm source'],
+        utmMedium: ['utm_medium', 'utm medium'],
+        utmCampaign: ['utm_campaign', 'utm campaign'],
+        summaryCount: ['closings'],
+        summaryCashCollectPaid: ['cash collect paid'],
+        summaryCashCollectOrganisch: ['cash collect organisch'],
+        summaryUmsatzPaid: ['umsatz paid'],
+        summaryUmsatzOrganisch: ['umsatz organisch'],
+      },
+    },
   },
   questionnaire: {
     detect: {
@@ -111,6 +135,7 @@ function mergeConfig(base, over) {
           overview: mergeTable(base.sheet.overview, s.overview),
           leads: mergeTable(base.sheet.leads, s.leads),
           termine: mergeTable(base.sheet.termine, s.termine),
+          closings: mergeTable(base.sheet.closings, s.closings),
         }
       : base.sheet,
     questionnaire: q

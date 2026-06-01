@@ -41,6 +41,7 @@ function classifyHeader(cells, project) {
   if (matchDetect(set, project?.sheet?.overview?.detect)) return 'overview';
   if (matchDetect(set, project?.questionnaire?.detect)) return 'tickets';
   if (matchDetect(set, project?.sheet?.termine?.detect)) return 'termine';
+  if (matchDetect(set, project?.sheet?.closings?.detect)) return 'closings';
   if (matchDetect(set, project?.sheet?.leads?.detect)) return 'leads';
   return null;
 }
@@ -184,6 +185,49 @@ function parseTermineRow(o, fields) {
   };
 }
 
+/**
+ * Closings-Tab: Einzelzeile = ein Verkauf (mit Datum Kauf + Umsatz). Die
+ * Zeile OHNE Datum Kauf, aber mit Closings-/Cash-Collect-Werten ist die
+ * Summenzeile -> als { summary: true, ... } zurückgeben.
+ */
+function parseClosingRow(o, fields) {
+  const at = parseDate(pickRaw(o, fields.at));
+  if (at) {
+    return {
+      summary: false,
+      wonAt: at,
+      name: norm(pickRaw(o, fields.name)),
+      email: normEmail(pickRaw(o, fields.email)),
+      phone: norm(pickRaw(o, fields.phone)),
+      land: norm(pickRaw(o, fields.land)),
+      produkt: norm(pickRaw(o, fields.produkt)),
+      revenueNet: num(pickRaw(o, fields.revenueNet)),
+      revenueGross: num(pickRaw(o, fields.revenueGross)),
+      utm: {
+        source: norm(pickRaw(o, fields.utmSource)),
+        medium: norm(pickRaw(o, fields.utmMedium)),
+        campaign: norm(pickRaw(o, fields.utmCampaign)),
+        term: '',
+      },
+    };
+  }
+  // Keine Kaufzeile -> evtl. Summenzeile (Cash Collect / Closings-Anzahl)?
+  const cashPaid = num(pickRaw(o, fields.summaryCashCollectPaid));
+  const cashOrg = num(pickRaw(o, fields.summaryCashCollectOrganisch));
+  const count = num(pickRaw(o, fields.summaryCount));
+  if (cashPaid != null || cashOrg != null || count != null) {
+    return {
+      summary: true,
+      cashCollectPaid: cashPaid,
+      cashCollectOrganisch: cashOrg,
+      umsatzPaid: num(pickRaw(o, fields.summaryUmsatzPaid)),
+      umsatzOrganisch: num(pickRaw(o, fields.summaryUmsatzOrganisch)),
+      closingsCount: count,
+    };
+  }
+  return null;
+}
+
 function parseTicketRow(o, project) {
   const q = project.questionnaire || {};
   const f = q.fields || {};
@@ -220,11 +264,14 @@ export function parseSheets(sheets, project = DEFAULT_PROJECT) {
   const tickets = [];
   const overview = [];
   const termine = [];
+  const closings = [];
+  let closingsSummary = null;
   const warnings = [];
   const seenTickets = new Set();
   const overviewFields = project.sheet?.overview?.fields || DEFAULT_PROJECT.sheet.overview.fields;
   const leadFields = project.sheet?.leads?.fields || DEFAULT_PROJECT.sheet.leads.fields;
   const termineFields = project.sheet?.termine?.fields || DEFAULT_PROJECT.sheet.termine.fields;
+  const closingFields = project.sheet?.closings?.fields || DEFAULT_PROJECT.sheet.closings.fields;
 
   for (const sheet of sheets) {
     const rows = sheet.values || [];
@@ -237,6 +284,10 @@ export function parseSheets(sheets, project = DEFAULT_PROJECT) {
         } else if (table.type === 'termine') {
           const r = parseTermineRow(o, termineFields);
           if (r) termine.push(r);
+        } else if (table.type === 'closings') {
+          const r = parseClosingRow(o, closingFields);
+          if (r && r.summary) closingsSummary = r;
+          else if (r) closings.push(r);
         } else if (table.type === 'leads') {
           const r = parseLeadRow(o, leadFields);
           if (r) leads.push(r);
@@ -253,7 +304,7 @@ export function parseSheets(sheets, project = DEFAULT_PROJECT) {
     }
   }
 
-  return { leads, tickets, overview, termine, warnings };
+  return { leads, tickets, overview, termine, closings, closingsSummary, warnings };
 }
 
 export const _internal = {

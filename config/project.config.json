@@ -63,6 +63,27 @@
         "utmCampaign": ["utm campaign"],
         "appointmentAt": ["datum gespräch"]
       }
+    },
+    "closings": {
+      "detect": { "all": ["datum kauf", "produkt"], "any": [] },
+      "fields": {
+        "at": ["datum kauf"],
+        "name": ["name"],
+        "email": ["e-mail"],
+        "phone": ["telefon"],
+        "land": ["land"],
+        "produkt": ["produkt"],
+        "revenueNet": ["umsatz netto"],
+        "revenueGross": ["umsatz brutto"],
+        "utmSource": ["utm source"],
+        "utmMedium": ["utm medium"],
+        "utmCampaign": ["utm campaign"],
+        "summaryCount": ["closings"],
+        "summaryCashCollectPaid": ["cash collect paid"],
+        "summaryCashCollectOrganisch": ["cash collect organisch"],
+        "summaryUmsatzPaid": ["umsatz paid"],
+        "summaryUmsatzOrganisch": ["umsatz organisch"]
+      }
     }
   },
 

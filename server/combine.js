@@ -62,6 +62,20 @@ function derive(m) {
 
 const round2 = (n) => (n == null ? null : Math.round(n * 100) / 100);
 
+// Hierarchischer Attributions-Schlüssel, damit gleichnamige Anzeigengruppen/
+// Creatives in verschiedenen Kampagnen NICHT zusammengeworfen werden.
+//   campaign:  Kampagne
+//   adset:     Kampagne ▸ Anzeigengruppe
+//   creative:  Kampagne ▸ Anzeigengruppe ▸ Creative
+const PATH_SEP = '';
+function pathKey(dim, { campaign, adset, creative }) {
+  const c = normKey(campaign);
+  if (dim === 'campaign') return c;
+  const a = normKey(adset);
+  if (dim === 'adset') return `${c}${PATH_SEP}${a}`;
+  return `${c}${PATH_SEP}${a}${PATH_SEP}${normKey(creative)}`;
+}
+
 /**
  * @param {object} meta   Ergebnis aus fetchMetaAll() (entities, daily, status)
  * @param {array}  leads  Lead-Records aus buildDataset (mit campaign/adset/creative, wonAt, hasTicket)
@@ -70,13 +84,20 @@ export function combineMetaWithLeads(meta, leads) {
   const { entities = [], daily = [], dailyEntities = [], campaignStatus = {}, adsetStatus = {}, adStatus = {} } = meta || {};
   const campCfg = loadCampaignConfig();
 
-  // Lead-/Ticket-/Qualitäts-Zähler je Dimension (über normalisierte UTM-Namen)
+  // Lead-/Ticket-/Qualitäts-Zähler je Dimension. WICHTIG: HIERARCHISCH
+  // geschlüsselt, damit ein Creative-/Anzeigengruppen-Name, der in mehreren
+  // Kampagnen/Anzeigengruppen vorkommt (z. B. "Static #22 – Neu" bei CBO),
+  // nicht alle gleichnamigen Leads einsammelt. Schlüssel:
+  //   campaign:  Kampagne
+  //   adset:     Kampagne ▸ Anzeigengruppe
+  //   creative:  Kampagne ▸ Anzeigengruppe ▸ Creative
+  const leafName = (dim, parts) => (dim === 'campaign' ? parts.campaign : dim === 'adset' ? parts.adset : parts.creative);
   const leadBy = { campaign: new Map(), adset: new Map(), creative: new Map() };
   for (const l of leads || []) {
     if (l.sourceType !== 'paid') continue;
     for (const dim of ['campaign', 'adset', 'creative']) {
-      const k = normKey(l[dim]);
-      if (!k) continue;
+      if (!normKey(leafName(dim, l))) continue; // Blatt-Name muss vorhanden sein
+      const k = pathKey(dim, l);
       if (!leadBy[dim].has(k)) leadBy[dim].set(k, { leads: 0, tickets: 0, scoreSum: 0, scored: 0, qualified: 0 });
       const e = leadBy[dim].get(k);
       e.leads += 1;
@@ -88,7 +109,7 @@ export function combineMetaWithLeads(meta, leads) {
       }
     }
   }
-  const lookupLeads = (dim, name) => leadBy[dim].get(normKey(name)) || { leads: 0, tickets: 0, scoreSum: 0, scored: 0, qualified: 0 };
+  const lookupLeads = (dim, parts) => leadBy[dim].get(pathKey(dim, parts)) || { leads: 0, tickets: 0, scoreSum: 0, scored: 0, qualified: 0 };
 
   // Hierarchie aufbauen: Kampagne -> Anzeigengruppe -> Ad
   const campaigns = new Map();
@@ -123,8 +144,9 @@ export function combineMetaWithLeads(meta, leads) {
     }
     const a = c.adsets.get(aKey);
 
-    // Ad-Ebene: FB-Kennzahlen direkt, Leads/Tickets/Qualität über Creative-Namen
-    const adLeads = lookupLeads('creative', e.creative);
+    // Ad-Ebene: FB-Kennzahlen direkt, Leads/Tickets/Qualität über den vollen
+    // Pfad (Kampagne ▸ Anzeigengruppe ▸ Creative), nicht nur den Creative-Namen
+    const adLeads = lookupLeads('creative', { campaign: e.campaign, adset: e.adset, creative: e.creative });
     const adM = {
       spend: e.spend,
       impressions: e.impressions,
@@ -160,10 +182,10 @@ export function combineMetaWithLeads(meta, leads) {
   };
   const result = [];
   for (const c of campaigns.values()) {
-    applyLeadStats(c._m, lookupLeads('campaign', c.name));
+    applyLeadStats(c._m, lookupLeads('campaign', { campaign: c.name }));
     const adsets = [];
     for (const a of c.adsets.values()) {
-      applyLeadStats(a._m, lookupLeads('adset', a.name));
+      applyLeadStats(a._m, lookupLeads('adset', { campaign: c.name, adset: a.name }));
       adsets.push({
         id: a.id, name: a.name, level: 'adset', active: a.active, status: a.status,
         ...derive(a._m),
@@ -289,8 +311,8 @@ function buildDailyByEntity(dailyEntities, leads) {
   for (const r of dailyEntities) {
     if (!r.date) continue;
     for (const dim of dims) {
-      const key = normKey(r[dim]);
-      if (!key) continue;
+      if (!normKey(r[dim])) continue; // Blatt-Name vorhanden?
+      const key = pathKey(dim, r);
       const d = ensureDay(fb[dim], key, r.date);
       d.spend += r.spend || 0;
       d.impressions += r.impressions || 0;
@@ -312,8 +334,8 @@ function buildDailyByEntity(dailyEntities, leads) {
     const day = (l.wonAt || '').slice(0, 10);
     if (!day) continue;
     for (const dim of dims) {
-      const key = normKey(l[dim]);
-      if (!key) continue;
+      if (!normKey(l[dim])) continue; // Blatt-Name vorhanden?
+      const key = pathKey(dim, l);
       const d = ensureLeadDay(sheet[dim], key, day);
       d.leads += 1;
       if (l.hasTicket) d.tickets += 1;

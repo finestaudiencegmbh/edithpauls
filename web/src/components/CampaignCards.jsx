@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { fmtEur, fmtInt, fmtPct, normKey } from '../lib.js';
+import { fmtEur, fmtInt, fmtPct, entityKey } from '../lib.js';
 import GraphPanel from './GraphPanel.jsx';
 
 /** Kleiner "Grafik"-Button (öffnet die Zeitreihen-Ansicht). */
@@ -83,12 +83,12 @@ export default function CampaignCards({ hierarchy, dailyByEntity }) {
   const [graph, setGraph] = useState(null);
   const toggle = (id) => setOpen((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  // Tagesreihe einer Entität holen und Grafik öffnen
-  const openGraph = (dim, name) => {
-    const series = dailyByEntity?.[dim]?.[normKey(name)] || [];
-    setGraph({ title: name, levelLabel: LEVEL_LABEL[dim], series });
+  // Tagesreihe einer Entität (über den vollen Pfad) holen und Grafik öffnen
+  const seriesFor = (dim, parts) => dailyByEntity?.[dim]?.[entityKey(dim, parts)];
+  const openGraph = (dim, parts, title) => {
+    setGraph({ title, levelLabel: LEVEL_LABEL[dim], series: seriesFor(dim, parts) || [] });
   };
-  const hasGraph = (dim, name) => Boolean(dailyByEntity?.[dim]?.[normKey(name)]?.length);
+  const hasGraph = (dim, parts) => Boolean(seriesFor(dim, parts)?.length);
 
   const campaigns = (hierarchy || []).filter((c) => !onlyActive || c.active !== false);
 
@@ -116,7 +116,7 @@ export default function CampaignCards({ hierarchy, dailyByEntity }) {
                 <span className="cc-name" title={c.name}>{c.name}</span>
                 {leadHidden && <span className="traffic-tag">Traffic</span>}
                 <span className="cc-head-spend">{fmtEur(c.spend)}</span>
-                {hasGraph('campaign', c.name) && <GraphBtn onClick={() => openGraph('campaign', c.name)} />}
+                {hasGraph('campaign', { campaign: c.name }) && <GraphBtn onClick={() => openGraph('campaign', { campaign: c.name }, c.name)} />}
               </div>
               <Metrics n={c} leadHidden={leadHidden} />
 
@@ -138,7 +138,7 @@ export default function CampaignCards({ hierarchy, dailyByEntity }) {
                             <span className="cc-sm-item"><b>{leadHidden ? '–' : fmtEur(a.cpl)}</b> CPL</span>
                             <span className="cc-sm-item"><b>{leadHidden ? '–' : fmtPct(a.qualifiedRate)}</b> Quali</span>
                           </span>
-                          {hasGraph('adset', a.name) && <GraphBtn onClick={() => openGraph('adset', a.name)} />}
+                          {hasGraph('adset', { campaign: c.name, adset: a.name }) && <GraphBtn onClick={() => openGraph('adset', { campaign: c.name, adset: a.name }, a.name)} />}
                         </div>
                         {aOpen && (
                           <div className="cc-sub-body">
@@ -161,7 +161,7 @@ export default function CampaignCards({ hierarchy, dailyByEntity }) {
                                       {ad.active != null && <span className={`status-dot ${ad.active ? 'on' : 'off'}`} />}
                                       <span className="cc-ad-label">{ad.name}</span>
                                       {ad.active === false && <span className="paused-tag">aus</span>}
-                                      {hasGraph('creative', ad.name) && <GraphBtn compact onClick={() => openGraph('creative', ad.name)} />}
+                                      {hasGraph('creative', { campaign: c.name, adset: a.name, creative: ad.name }) && <GraphBtn compact onClick={() => openGraph('creative', { campaign: c.name, adset: a.name, creative: ad.name }, ad.name)} />}
                                     </span>
                                     <span>{fmtEur(ad.spend)}</span>
                                     <span>{leadHidden ? '–' : fmtInt(ad.leads)}</span>

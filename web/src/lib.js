@@ -84,6 +84,17 @@ export const normKey = (s) =>
     .trim()
     .toLowerCase();
 
+// Hierarchischer Schlüssel (muss mit server/combine.js pathKey übereinstimmen):
+// campaign / Kampagne▸Anzeigengruppe / Kampagne▸Anzeigengruppe▸Creative.
+const PATH_SEP = '';
+export function entityKey(dim, { campaign, adset, creative } = {}) {
+  const c = normKey(campaign);
+  if (dim === 'campaign') return c;
+  const a = normKey(adset);
+  if (dim === 'adset') return `${c}${PATH_SEP}${a}`;
+  return `${c}${PATH_SEP}${a}${PATH_SEP}${normKey(creative)}`;
+}
+
 function spendForAdsets(adsetNames, overviewByAdset) {
   let sum = 0;
   let any = false;

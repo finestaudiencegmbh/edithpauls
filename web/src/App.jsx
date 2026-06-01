@@ -92,21 +92,23 @@ export default function App() {
     const sum = (arr, f) => arr.reduce((s, c) => s + (f(c) || 0), 0);
     const total = filteredClosings.length;
     const paidRows = filteredClosings.filter((c) => c.sourceType === 'paid');
-    const umsatz = sum(filteredClosings, (c) => c.revenueGross);
-    const umsatzPaid = sum(paidRows, (c) => c.revenueGross);
-    const spend = kpis?.spend || 0;
+    const netto = sum(filteredClosings, (c) => c.revenueNet);
+    const nettoPaid = sum(paidRows, (c) => c.revenueNet);
+    const brutto = sum(filteredClosings, (c) => c.revenueGross);
+    const bruttoPaid = sum(paidRows, (c) => c.revenueGross);
     return {
       has: (data?.counts?.closings || 0) > 0,
       total,
       paid: paidRows.length,
       organic: total - paidRows.length,
-      umsatz,
-      umsatzPaid,
-      umsatzOrganic: umsatz - umsatzPaid,
-      roas: spend > 0 ? umsatz / spend : null,
-      cashCollect: data?.closingsSummary?.cashCollect ?? null,
+      netto,
+      nettoPaid,
+      nettoOrganic: netto - nettoPaid,
+      brutto,
+      bruttoPaid,
+      bruttoOrganic: brutto - bruttoPaid,
     };
-  }, [filteredClosings, data, kpis]);
+  }, [filteredClosings, data]);
   const dist = useMemo(() => (data ? tierDistribution(filtered, tiers) : {}), [data, filtered, tiers]);
   const leadDaily = useMemo(() => (data ? leadsByDay(filtered) : []), [data, filtered]);
   // Termine pro Tag (nach Eintrags-/Lead-Datum, gleiche Achse wie die Leads)

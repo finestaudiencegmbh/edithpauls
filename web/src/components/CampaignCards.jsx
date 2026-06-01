@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
-import { fmtEur, fmtInt, fmtPct } from '../lib.js';
+import { fmtEur, fmtInt, fmtPct, normKey } from '../lib.js';
+import GraphPanel from './GraphPanel.jsx';
+
+/** Kleiner "Grafik"-Button (öffnet die Zeitreihen-Ansicht). */
+function GraphBtn({ onClick, compact }) {
+  return (
+    <button className={`graph-btn ${compact ? 'compact' : ''}`} onClick={(e) => { e.stopPropagation(); onClick(); }} title="Grafik anzeigen">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 3v18h18" />
+        <path d="M7 14l4-4 3 3 5-6" />
+      </svg>
+      {!compact && <span>Grafik</span>}
+    </button>
+  );
+}
 
 const fmtEur2 = (n) => (n == null ? '–' : new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(n));
 const fmtScore = (n) => (n == null ? '–' : String(Math.round(n)));
@@ -61,10 +75,20 @@ function StatusDot({ active }) {
   return <span className={`status-dot ${active ? 'on' : 'off'}`} title={active ? 'Aktiv' : 'Pausiert'} />;
 }
 
-export default function CampaignCards({ hierarchy }) {
+const LEVEL_LABEL = { campaign: 'Kampagne', adset: 'Anzeigengruppe', creative: 'Creative' };
+
+export default function CampaignCards({ hierarchy, dailyByEntity }) {
   const [open, setOpen] = useState(() => new Set());
   const [onlyActive, setOnlyActive] = useState(true);
+  const [graph, setGraph] = useState(null);
   const toggle = (id) => setOpen((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  // Tagesreihe einer Entität holen und Grafik öffnen
+  const openGraph = (dim, name) => {
+    const series = dailyByEntity?.[dim]?.[normKey(name)] || [];
+    setGraph({ title: name, levelLabel: LEVEL_LABEL[dim], series });
+  };
+  const hasGraph = (dim, name) => Boolean(dailyByEntity?.[dim]?.[normKey(name)]?.length);
 
   const campaigns = (hierarchy || []).filter((c) => !onlyActive || c.active !== false);
 
@@ -86,13 +110,14 @@ export default function CampaignCards({ hierarchy }) {
           const adsets = c.adsets.filter((a) => !onlyActive || a.active !== false);
           return (
             <div key={c.id} className={`cc-card ${leadHidden ? 'is-traffic' : ''}`}>
-              <button className="cc-head" onClick={() => toggle(c.id)}>
+              <div className="cc-head" onClick={() => toggle(c.id)} role="button">
                 <span className={`caret ${cOpen ? 'open' : ''}`}>▶</span>
                 <StatusDot active={c.active} />
                 <span className="cc-name" title={c.name}>{c.name}</span>
                 {leadHidden && <span className="traffic-tag">Traffic</span>}
                 <span className="cc-head-spend">{fmtEur(c.spend)}</span>
-              </button>
+                {hasGraph('campaign', c.name) && <GraphBtn onClick={() => openGraph('campaign', c.name)} />}
+              </div>
               <Metrics n={c} leadHidden={leadHidden} />
 
               {cOpen && (
@@ -103,7 +128,7 @@ export default function CampaignCards({ hierarchy }) {
                     const ads = (a.ads || []).filter((ad) => !onlyActive || ad.active !== false);
                     return (
                       <div key={aId} className="cc-sub">
-                        <button className="cc-subhead" onClick={() => toggle(aId)}>
+                        <div className="cc-subhead" onClick={() => toggle(aId)} role="button">
                           <span className={`caret ${aOpen ? 'open' : ''}`}>▶</span>
                           <StatusDot active={a.active} />
                           <span className="cc-subname" title={a.name}>{a.name}</span>
@@ -113,7 +138,8 @@ export default function CampaignCards({ hierarchy }) {
                             <span className="cc-sm-item"><b>{leadHidden ? '–' : fmtEur(a.cpl)}</b> CPL</span>
                             <span className="cc-sm-item"><b>{leadHidden ? '–' : fmtPct(a.qualifiedRate)}</b> Quali</span>
                           </span>
-                        </button>
+                          {hasGraph('adset', a.name) && <GraphBtn onClick={() => openGraph('adset', a.name)} />}
+                        </div>
                         {aOpen && (
                           <div className="cc-sub-body">
                             <Metrics n={a} leadHidden={leadHidden} />
@@ -133,8 +159,9 @@ export default function CampaignCards({ hierarchy }) {
                                   <div key={ad.id} className={`cc-ad ${ad.active === false ? 'is-paused' : ''}`}>
                                     <span className="cc-ad-name" title={ad.name}>
                                       {ad.active != null && <span className={`status-dot ${ad.active ? 'on' : 'off'}`} />}
-                                      {ad.name}
+                                      <span className="cc-ad-label">{ad.name}</span>
                                       {ad.active === false && <span className="paused-tag">aus</span>}
+                                      {hasGraph('creative', ad.name) && <GraphBtn compact onClick={() => openGraph('creative', ad.name)} />}
                                     </span>
                                     <span>{fmtEur(ad.spend)}</span>
                                     <span>{leadHidden ? '–' : fmtInt(ad.leads)}</span>
@@ -160,6 +187,10 @@ export default function CampaignCards({ hierarchy }) {
         })}
         {campaigns.length === 0 && <div className="empty">Keine {onlyActive ? 'aktiven ' : ''}Kampagnen gefunden.</div>}
       </div>
+
+      {graph && (
+        <GraphPanel title={graph.title} levelLabel={graph.levelLabel} series={graph.series} onClose={() => setGraph(null)} />
+      )}
     </div>
   );
 }

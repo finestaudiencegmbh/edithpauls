@@ -67,7 +67,7 @@ const round2 = (n) => (n == null ? null : Math.round(n * 100) / 100);
  * @param {array}  leads  Lead-Records aus buildDataset (mit campaign/adset/creative, wonAt, hasTicket)
  */
 export function combineMetaWithLeads(meta, leads) {
-  const { entities = [], daily = [], campaignStatus = {}, adsetStatus = {}, adStatus = {} } = meta || {};
+  const { entities = [], daily = [], dailyEntities = [], campaignStatus = {}, adsetStatus = {}, adStatus = {} } = meta || {};
   const campCfg = loadCampaignConfig();
 
   // Lead-/Ticket-/Qualitäts-Zähler je Dimension (über normalisierte UTM-Namen)
@@ -255,12 +255,98 @@ export function combineMetaWithLeads(meta, leads) {
     }
   }
 
+  // Tagesreihen JE Entität (Kampagne/Anzeigengruppe/Creative) für die
+  // "Grafik"-Ansicht: FB-Tagesdaten + Plattform-Split + Sheet-Leads/Tickets/
+  // Qualität, alles je Tag. Schlüssel = normalisierter Name.
+  const dailyByEntity = buildDailyByEntity(dailyEntities, leads || []);
+
   return {
     hierarchy: result,
     totals,
     uocByDim,
     dimMeta,
+    dailyByEntity,
     nonLeadCampaigns: result.filter((c) => !c.leadCampaign).map((c) => ({ name: c.name, objective: c.objective, spend: c.spend })),
     daily: { spend: spendByDay, leads: leadsByDay },
   };
+}
+
+/**
+ * Baut je Dimension (campaign/adset/creative) und je normalisiertem Namen eine
+ * sortierte Tagesreihe mit FB-Rohwerten (spend/impressions/clicks/uoc + Spend
+ * pro Plattform) und Sheet-Werten (leads/tickets/quality). Das Frontend leitet
+ * daraus die überlagerbaren KPIs ab (CPL, CPM, CTR, CPC, €/Ticket, Qualität …).
+ */
+function buildDailyByEntity(dailyEntities, leads) {
+  const dims = ['campaign', 'adset', 'creative'];
+  const fb = { campaign: new Map(), adset: new Map(), creative: new Map() };
+  const ensureDay = (map, key, date) => {
+    if (!map.has(key)) map.set(key, new Map());
+    const days = map.get(key);
+    if (!days.has(date)) days.set(date, { spend: 0, impressions: 0, clicks: 0, uoc: 0, platforms: {} });
+    return days.get(date);
+  };
+  for (const r of dailyEntities) {
+    if (!r.date) continue;
+    for (const dim of dims) {
+      const key = normKey(r[dim]);
+      if (!key) continue;
+      const d = ensureDay(fb[dim], key, r.date);
+      d.spend += r.spend || 0;
+      d.impressions += r.impressions || 0;
+      d.clicks += r.clicks || 0;
+      d.uoc += r.uoc || 0;
+      if (r.platform) d.platforms[r.platform] = (d.platforms[r.platform] || 0) + (r.spend || 0);
+    }
+  }
+
+  const sheet = { campaign: new Map(), adset: new Map(), creative: new Map() };
+  const ensureLeadDay = (map, key, date) => {
+    if (!map.has(key)) map.set(key, new Map());
+    const days = map.get(key);
+    if (!days.has(date)) days.set(date, { leads: 0, tickets: 0, scoreSum: 0, scored: 0, qualified: 0 });
+    return days.get(date);
+  };
+  for (const l of leads) {
+    if (l.sourceType !== 'paid') continue;
+    const day = (l.wonAt || '').slice(0, 10);
+    if (!day) continue;
+    for (const dim of dims) {
+      const key = normKey(l[dim]);
+      if (!key) continue;
+      const d = ensureLeadDay(sheet[dim], key, day);
+      d.leads += 1;
+      if (l.hasTicket) d.tickets += 1;
+      if (l.quality) {
+        d.scoreSum += l.quality.score;
+        d.scored += 1;
+        if (['A', 'B'].includes(l.quality.tier)) d.qualified += 1;
+      }
+    }
+  }
+
+  const out = { campaign: {}, adset: {}, creative: {} };
+  for (const dim of dims) {
+    const keys = new Set([...fb[dim].keys(), ...sheet[dim].keys()]);
+    for (const key of keys) {
+      const fbDays = fb[dim].get(key);
+      const shDays = sheet[dim].get(key);
+      const dates = new Set([...(fbDays?.keys() || []), ...(shDays?.keys() || [])]);
+      out[dim][key] = [...dates].sort().map((date) => {
+        const f = fbDays?.get(date) || { spend: 0, impressions: 0, clicks: 0, uoc: 0, platforms: {} };
+        const s = shDays?.get(date) || { leads: 0, tickets: 0, scoreSum: 0, scored: 0, qualified: 0 };
+        return {
+          date,
+          spend: round2(f.spend),
+          impressions: f.impressions,
+          uoc: f.uoc,
+          platforms: f.platforms,
+          leads: s.leads,
+          tickets: s.tickets,
+          quality: s.scored ? Math.round(s.scoreSum / s.scored) : null,
+        };
+      });
+    }
+  }
+  return out;
 }

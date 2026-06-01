@@ -484,7 +484,8 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .cc-ad > span:not(.cc-ad-name) { text-align: right; color: var(--ink-soft); white-space: nowrap; }
-.cc-ad-name { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.cc-ad-name { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; display: flex; align-items: center; gap: 7px; }
+.cc-ad-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cc-ad-headrow { background: rgba(208,187,90,0.06); }
 .cc-ad-headrow span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--faint) !important; }
 @media (max-width: 760px) { .cc-ad { grid-template-columns: 1fr; gap: 4px; text-align: left; } .cc-ad > span:not(.cc-ad-name) { text-align: left; } .cc-ad-headrow { display: none; } }
@@ -749,4 +750,56 @@ body {
   .data-table.leads tr.clickable.expanded::after { transform: rotate(90deg); }
   /* erste Zeile (Name) volle Breite, kein data-label */
   .data-table.leads td.left::before { display: none; }
+}
+
+/* ============ Grafik-Ansicht (Zeitreihen je Entität) ============ */
+.graph-btn {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  margin-left: 12px; padding: 6px 11px; border-radius: 9px;
+  border: 1px solid var(--line-strong); background: rgba(208,187,90,0.08);
+  color: var(--accent-ink); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.graph-btn:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-2); }
+.graph-btn.compact { margin-left: 0; padding: 4px; gap: 0; border-radius: 7px; }
+.graph-btn svg { display: block; }
+.cc-sub-meta + .graph-btn { margin-left: 12px; }
+
+.graph-overlay {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(4, 4, 9, 0.74); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  animation: graphFade .15s ease;
+}
+@keyframes graphFade { from { opacity: 0; } to { opacity: 1; } }
+.graph-modal {
+  width: min(900px, 100%); max-height: 90vh; overflow-y: auto;
+  background: var(--panel-solid); border: 1px solid var(--line-strong); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 22px 24px 26px;
+}
+.graph-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.graph-titles { min-width: 0; }
+.graph-level { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--line-strong); padding: 3px 9px; border-radius: 999px; margin-bottom: 8px; }
+.graph-title { margin: 0; font-size: 18px; color: var(--ink); line-height: 1.3; word-break: break-word; }
+.graph-close { flex: none; width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line-strong); background: rgba(255,255,255,0.03); color: var(--ink-soft); font-size: 15px; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.graph-close:hover { background: var(--accent-soft); color: var(--accent-ink); }
+
+.graph-kpis { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.kpi-chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 999px;
+  border: 1.5px solid var(--line-strong); background: rgba(255,255,255,0.03); color: var(--muted);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.kpi-chip:hover { background: var(--accent-soft); }
+.kpi-chip.on { background: rgba(255,255,255,0.05); }
+.kpi-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+.graph-chart { background: rgba(4, 4, 9, 0.4); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px; }
+.graph-legend { margin-bottom: 14px; gap: 16px; }
+.legend-agg { margin-left: 4px; font-weight: 700; font-size: 12.5px; }
+
+@media (max-width: 760px) {
+  .graph-overlay { padding: 0; align-items: stretch; }
+  .graph-modal { width: 100%; max-height: 100vh; border-radius: 0; padding: 18px 16px 22px; }
+  .graph-title { font-size: 16px; }
+  .cc-sub-meta + .graph-btn { display: inline-flex; }
 }

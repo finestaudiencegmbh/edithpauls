@@ -168,6 +168,35 @@ async function fetchDaily(c, range) {
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
+/**
+ * Tägliche Kennzahlen JE WERBEANZEIGE inkl. Plattform-Split – Basis für die
+ * "Grafik"-Ansicht (Zeitreihen je Kampagne/Anzeigengruppe/Creative mit
+ * überlagerbaren KPIs). time_increment '1' = pro Tag, breakdowns =
+ * publisher_platform (Facebook/Instagram/…) für den Ad-Spend pro Plattform.
+ */
+async function fetchDailyEntities(c, range) {
+  const rows = await graphGet(
+    insightsUrl(c, {
+      level: 'ad',
+      fields: 'campaign_name,adset_name,ad_name,spend,impressions,clicks,unique_outbound_clicks',
+      breakdowns: 'publisher_platform',
+      time_range: JSON.stringify(range),
+      time_increment: '1',
+    })
+  );
+  return rows.map((r) => ({
+    date: r.date_start,
+    campaign: String(r.campaign_name ?? '').trim(),
+    adset: String(r.adset_name ?? '').trim(),
+    creative: String(r.ad_name ?? '').trim(),
+    platform: String(r.publisher_platform ?? '').trim(),
+    spend: Number(r.spend) || 0,
+    impressions: Number(r.impressions) || 0,
+    clicks: Number(r.clicks) || 0,
+    uoc: actionSum(r.unique_outbound_clicks),
+  }));
+}
+
 /** effective_status je Kampagne (+objective), Anzeigengruppe und Werbeanzeige. */
 async function fetchStatus(c) {
   const camps = await graphGet(
@@ -200,13 +229,14 @@ export async function fetchMetaAll(customRange) {
   if (!isMetaConfigured()) return null;
   const c = cfg();
   const range = customRange?.since && customRange?.until ? customRange : dateRange(c.lookback);
-  const [records, entities, daily, status] = await Promise.all([
+  const [records, entities, daily, dailyEntities, status] = await Promise.all([
     fetchPlacementRecords(c, range),
     fetchEntities(c, range),
     fetchDaily(c, range),
+    fetchDailyEntities(c, range).catch(() => []),
     fetchStatus(c).catch(() => ({ campaignStatus: {}, adsetStatus: {} })),
   ]);
-  return { records, entities, daily, ...status, range };
+  return { records, entities, daily, dailyEntities, ...status, range };
 }
 
 /** Rückwärtskompatibel: nur die Placement-Records (für aggregateFb). */

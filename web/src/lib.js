@@ -76,7 +76,7 @@ export function applyFilters(leads, f) {
 // ---- Aggregation -----------------------------------------------------------
 // Matching FB <-> Sheet: Bindestrich-Varianten vereinheitlichen, "Kopie"/"Copy"-
 // Suffix entfernen (Sheet hat oft "… – Kopie", FB nicht), Whitespace kollabieren.
-const normKey = (s) =>
+export const normKey = (s) =>
   String(s ?? '')
     .replace(/[‐-―−]/g, '-')
     .replace(/[\s-]*\b(kopie|copy)\b\s*\d*$/i, '')
